@@ -17,3 +17,31 @@ final squadByTeamProvider =
   final matches = teams.where((t) => t.id == args.teamId);
   return matches.isEmpty ? null : matches.first;
 });
+
+typedef LineupArgs = ({
+  int eventId,
+  int homeTeamId,
+  int awayTeamId,
+  String homeTeam,
+  String awayTeam,
+  String date,
+});
+
+/// Fetches the live starting lineup for an event via Claude AI + WebSearch.
+/// Returns null on error so the caller can fall back to squad selection.
+/// Result: `{'home': List<Athlete>, 'away': List<Athlete>, 'is_squad_pick': bool}`
+final eventLineupProvider =
+    FutureProvider.family<Map<String, dynamic>?, LineupArgs>((ref, args) async {
+  try {
+    return await ref.read(apiServiceProvider).getEventLineup(
+          args.eventId,
+          homeTeamId: args.homeTeamId,
+          awayTeamId: args.awayTeamId,
+          homeTeam: args.homeTeam,
+          awayTeam: args.awayTeam,
+          date: args.date,
+        );
+  } catch (_) {
+    return null;
+  }
+});

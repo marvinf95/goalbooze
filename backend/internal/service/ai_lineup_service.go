@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/marvinf95/goalbooze/internal/model"
@@ -24,6 +25,7 @@ type AILineupService struct {
 	httpClient     *http.Client
 	lineupCache    *repository.LineupCacheRepository
 	squadRepo      *repository.SquadRepository
+	claudeMu       sync.Mutex
 }
 
 func NewAILineupService(anthropicKey, anthropicModel string, lineupCache *repository.LineupCacheRepository, squadRepo *repository.SquadRepository) *AILineupService {
@@ -112,26 +114,109 @@ func (s *AILineupService) GetLineup(event model.Event, homeTeamID, awayTeamID in
 }
 
 func (s *AILineupService) fetchLineupFromClaude(event model.Event) ([]model.Athlete, []model.Athlete, error) {
+	// Serialize Claude calls so concurrent lineup requests don't hit rate limits
+	s.claudeMu.Lock()
+	defer s.claudeMu.Unlock()
+
 	dateStr := event.Date.Format("02.01.2006")
-	prompt := fmt.Sprintf(
+
+	// Step 1: web search — let Claude answer naturally, no forced JSON format
+	searchPrompt := fmt.Sprintf(
 		"Search for the official starting lineup (Startaufstellung) for the football match: "+
 			"%s vs %s on %s. "+
-			"Return ONLY valid JSON with exactly 11 players per team and NO other text:\n"+
-			`{"home":[{"name":"Player Name","position":"GK","number":1}],"away":[{"name":"Player Name","position":"GK","number":1}]}`+
-			"\nUse position codes: GK, CB, RB, LB, CM, DM, RM, LM, AM, RW, LW, CF.",
+			"List all 11 starting players for each team with their jersey number and position.",
 		event.HomeTeam, event.AwayTeam, dateStr,
 	)
-
-	text, err := s.callClaude(prompt)
+	lineupText, err := s.callClaude(searchPrompt)
 	if err != nil {
 		return nil, nil, err
+	}
+	if lineupText == "" {
+		return nil, nil, fmt.Errorf("empty response from web search")
+	}
+
+	// Step 2: try to extract JSON directly; if Claude already returned it, we're done
+	jsonStr := extractJSON(lineupText)
+
+	if jsonStr == "" {
+		// Claude returned prose — ask a second time to format as JSON (no web search)
+		jsonStr, err = s.formatLineupAsJSON(lineupText, event.HomeTeam, event.AwayTeam)
+		if err != nil {
+			return nil, nil, fmt.Errorf("JSON formatting failed: %w", err)
+		}
+	}
+
+	return s.parseLineupJSON(jsonStr, event)
+}
+
+// formatLineupAsJSON converts a prose lineup description to structured JSON via a
+// simple (non-search) Claude call. Reliable because it's just reformatting known data.
+func (s *AILineupService) formatLineupAsJSON(lineupText, homeTeam, awayTeam string) (string, error) {
+	prompt := fmt.Sprintf(
+		"Convert the following lineup information to JSON. "+
+			"Return ONLY the JSON object, no explanation, no markdown:\n\n"+
+			"%s\n\n"+
+			`{"home":[{"name":"Name","position":"GK","number":1}],"away":[{"name":"Name","position":"GK","number":1}]}`+
+			"\nHome team: %s  Away team: %s  "+
+			"Use positions: GK, CB, RB, LB, CM, DM, RM, LM, AM, RW, LW, CF. "+
+			"Exactly 11 players per team.",
+		lineupText, homeTeam, awayTeam,
+	)
+
+	reqData := claudeRequest{
+		Model:     s.anthropicModel,
+		MaxTokens: 1024,
+		Messages:  []claudeMsg{{Role: "user", Content: prompt}},
+	}
+	body, err := json.Marshal(reqData)
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequest("POST", anthropicAPIURL, bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("x-api-key", s.anthropicKey)
+	req.Header.Set("anthropic-version", "2023-06-01")
+	req.Header.Set("content-type", "application/json")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("http request failed: %w", err)
+	}
+	respBody, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("claude API error %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var claudeResp claudeResponse
+	if err := json.Unmarshal(respBody, &claudeResp); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+	if claudeResp.Error != nil {
+		return "", fmt.Errorf("claude error: %s", claudeResp.Error.Message)
+	}
+
+	var text string
+	for _, block := range claudeResp.Content {
+		if block.Type == "text" {
+			text += block.Text
+		}
 	}
 
 	jsonStr := extractJSON(text)
 	if jsonStr == "" {
-		return nil, nil, fmt.Errorf("no JSON in Claude response")
+		return "", fmt.Errorf("no JSON in formatting response")
 	}
+	return jsonStr, nil
+}
 
+func (s *AILineupService) parseLineupJSON(jsonStr string, event model.Event) ([]model.Athlete, []model.Athlete, error) {
 	var data struct {
 		Home []struct {
 			Name     string `json:"name"`
