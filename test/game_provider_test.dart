@@ -1,10 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:goalbooze/provider/game_provider.dart';
-import 'package:goalbooze/service/api_service.dart';
-import 'package:goalbooze/model/game.dart';
-import 'package:goalbooze/model/player.dart';
 import 'package:goalbooze/model/event.dart';
+
+SportEvent _event(int id) => SportEvent(
+      id: id,
+      leagueId: 1,
+      homeTeam: 'Home $id',
+      awayTeam: 'Away $id',
+      date: DateTime(2026, 5, 16),
+      status: 'scheduled',
+    );
 
 void main() {
   test('GameNotifier initial state should have empty players and events', () {
@@ -56,14 +62,14 @@ void main() {
     final container = ProviderContainer();
     final notifier = container.read(gameProvider.notifier);
 
-    notifier.toggleEvent(100);
+    notifier.toggleEvent(_event(100));
     expect(container.read(gameProvider).selectedEventIds, [100]);
 
-    notifier.toggleEvent(100);
+    notifier.toggleEvent(_event(100));
     expect(container.read(gameProvider).selectedEventIds, isEmpty);
 
-    notifier.toggleEvent(100);
-    notifier.toggleEvent(200);
+    notifier.toggleEvent(_event(100));
+    notifier.toggleEvent(_event(200));
     expect(container.read(gameProvider).selectedEventIds, [100, 200]);
   });
 
@@ -72,7 +78,7 @@ void main() {
     final notifier = container.read(gameProvider.notifier);
 
     for (var i = 0; i < 11; i++) {
-      notifier.toggleEvent(i);
+      notifier.toggleEvent(_event(i));
     }
 
     final state = container.read(gameProvider);
@@ -84,7 +90,7 @@ void main() {
     final notifier = container.read(gameProvider.notifier);
 
     notifier.addPlayer('Alice');
-    notifier.toggleEvent(100);
+    notifier.toggleEvent(_event(100));
     notifier.reset();
 
     final state = container.read(gameProvider);
