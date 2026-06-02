@@ -46,7 +46,8 @@ app.*.map.json
 
 # Backend
 backend/.env
-backend/data/
+backend/data/*
+!backend/data/wc2026_squads.json
 backend/server
 
 # Claude Code session data

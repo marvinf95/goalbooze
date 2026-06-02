@@ -17,14 +17,14 @@ func TestFootballDataClient_GetLeagues(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetLeagues() returned error: %v", err)
 	}
-	if len(leagues) != 3 {
-		t.Fatalf("expected 3 leagues, got %d", len(leagues))
+	if len(leagues) != 4 {
+		t.Fatalf("expected 4 leagues, got %d", len(leagues))
 	}
 	slugs := make(map[string]bool)
 	for _, l := range leagues {
 		slugs[l.Slug] = true
 	}
-	for _, expected := range []string{"BL1", "BL2", "CL"} {
+	for _, expected := range []string{"BL1", "BL2", "CL", "WC"} {
 		if !slugs[expected] {
 			t.Errorf("expected league slug '%s' to be present", expected)
 		}

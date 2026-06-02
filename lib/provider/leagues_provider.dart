@@ -11,7 +11,5 @@ final leaguesProvider = FutureProvider<List<League>>((ref) async {
 final eventsByLeagueProvider =
     FutureProvider.family<List<SportEvent>, int>((ref, leagueId) async {
   final api = ref.read(apiServiceProvider);
-  final now = DateTime.now();
-  final season = now.month < 7 ? now.year - 1 : now.year;
-  return api.getEvents(leagueId, season);
+  return api.getEvents(leagueId, seasonForLeague(leagueId));
 });

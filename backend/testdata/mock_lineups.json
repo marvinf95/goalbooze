@@ -1,0 +1,30 @@
+{
+  "900401": {
+    "home": [
+      {"name": "Marc-André ter Stegen", "position": "GK", "number": 1},
+      {"name": "Joshua Kimmich", "position": "RB", "number": 6},
+      {"name": "Antonio Rüdiger", "position": "CB", "number": 2},
+      {"name": "Jonathan Tah", "position": "CB", "number": 4},
+      {"name": "David Raum", "position": "LB", "number": 22},
+      {"name": "Robert Andrich", "position": "DM", "number": 23},
+      {"name": "Pascal Groß", "position": "CM", "number": 13},
+      {"name": "Jamal Musiala", "position": "AM", "number": 14},
+      {"name": "Florian Wirtz", "position": "AM", "number": 10},
+      {"name": "Leroy Sané", "position": "RW", "number": 19},
+      {"name": "Kai Havertz", "position": "CF", "number": 7}
+    ],
+    "away": [
+      {"name": "Alisson", "position": "GK", "number": 1},
+      {"name": "Danilo", "position": "RB", "number": 2},
+      {"name": "Marquinhos", "position": "CB", "number": 4},
+      {"name": "Gabriel Magalhães", "position": "CB", "number": 3},
+      {"name": "Wendell", "position": "LB", "number": 6},
+      {"name": "Bruno Guimarães", "position": "DM", "number": 5},
+      {"name": "Lucas Paquetá", "position": "CM", "number": 8},
+      {"name": "Raphinha", "position": "AM", "number": 11},
+      {"name": "Rodrygo", "position": "RW", "number": 10},
+      {"name": "Vinícius Júnior", "position": "LW", "number": 7},
+      {"name": "Endrick", "position": "CF", "number": 9}
+    ]
+  }
+}

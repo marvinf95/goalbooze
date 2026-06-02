@@ -7,6 +7,21 @@ import 'package:goalbooze/model/athlete.dart';
 import 'package:goalbooze/model/player.dart';
 import 'package:goalbooze/model/team.dart';
 
+/// Internal league ID for the FIFA World Cup (matches backend config).
+const int worldCupLeagueId = 4;
+
+/// The World Cup runs in summer, so its season is the tournament year rather
+/// than the club-season heuristic used for domestic leagues.
+const int worldCupSeason = 2026;
+
+/// Returns the football-data season to query for a league. Summer tournaments
+/// use a fixed tournament year; club leagues use the month-based heuristic.
+int seasonForLeague(int leagueId) {
+  if (leagueId == worldCupLeagueId) return worldCupSeason;
+  final now = DateTime.now();
+  return now.month < 7 ? now.year - 1 : now.year;
+}
+
 class ApiService {
   final Dio _dio;
 
@@ -34,7 +49,7 @@ class ApiService {
   }
 
   Future<List<Team>> getTeams(int leagueId, {int? season}) async {
-    final s = season ?? _currentSeason();
+    final s = season ?? seasonForLeague(leagueId);
     final response =
         await _dio.get('/api/v1/leagues/$leagueId/teams?season=$s');
     return (response.data as List)
@@ -126,11 +141,6 @@ class ApiService {
 
   Future<void> deleteGame(int id) async {
     await _dio.delete('/api/v1/games/$id');
-  }
-
-  int _currentSeason() {
-    final now = DateTime.now();
-    return now.month < 7 ? now.year - 1 : now.year;
   }
 }
 

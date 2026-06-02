@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/marvinf95/goalbooze/config"
 	"github.com/marvinf95/goalbooze/internal/model"
 )
 
@@ -15,6 +16,7 @@ var leagueCodeMap = map[int]string{
 	1: "BL1",
 	2: "BL2",
 	3: "CL",
+	4: "WC",
 }
 
 type FootballDataClient struct {
@@ -32,14 +34,14 @@ func NewFootballDataClient(apiKey string) *FootballDataClient {
 }
 
 func (c *FootballDataClient) GetLeagues() ([]model.League, error) {
-	season := currentSeason()
+	clubSeason := currentSeason()
 	var leagues []model.League
 	for id, code := range leagueCodeMap {
 		leagues = append(leagues, model.League{
 			ID:     id,
 			Name:   leagueNameForCode(code),
 			Slug:   code,
-			Season: season,
+			Season: config.SeasonForLeague(id, clubSeason),
 		})
 	}
 	return leagues, nil
@@ -223,6 +225,14 @@ func devFixtures(leagueID int) []model.Event {
 		return []model.Event{
 			{ID: 900021, LeagueID: 3, HomeTeam: "FC Bayern München", HomeTeamID: 5, AwayTeam: "Real Madrid CF", AwayTeamID: 86, Date: base, Status: "scheduled"},
 		}
+	case 4:
+		// World Cup 2026 fixtures. Team IDs match wc2026_squads.json so the
+		// squad-based fallback resolves correctly in mock/dev mode.
+		return []model.Event{
+			{ID: 900401, LeagueID: 4, HomeTeam: "Germany", HomeTeamID: 759, AwayTeam: "Brazil", AwayTeamID: 764, Date: base, Status: "scheduled"},
+			{ID: 900402, LeagueID: 4, HomeTeam: "France", HomeTeamID: 773, AwayTeam: "Argentina", AwayTeamID: 762, Date: base.Add(3 * time.Hour), Status: "scheduled"},
+			{ID: 900403, LeagueID: 4, HomeTeam: "Spain", HomeTeamID: 760, AwayTeam: "England", AwayTeamID: 770, Date: base.Add(6 * time.Hour), Status: "scheduled"},
+		}
 	}
 	return nil
 }
@@ -250,6 +260,8 @@ func leagueNameForCode(code string) string {
 		return "2. Bundesliga"
 	case "CL":
 		return "Champions League"
+	case "WC":
+		return "WM 2026"
 	default:
 		return code
 	}

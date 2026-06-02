@@ -1,0 +1,118 @@
+[
+  {
+    "team_id": 759,
+    "name": "Germany",
+    "squad": [
+      {"name": "Marc-André ter Stegen", "position": "GK", "number": 1},
+      {"name": "Joshua Kimmich", "position": "RB", "number": 6},
+      {"name": "Antonio Rüdiger", "position": "CB", "number": 2},
+      {"name": "Jonathan Tah", "position": "CB", "number": 4},
+      {"name": "David Raum", "position": "LB", "number": 22},
+      {"name": "Robert Andrich", "position": "DM", "number": 23},
+      {"name": "Florian Wirtz", "position": "AM", "number": 10},
+      {"name": "Jamal Musiala", "position": "AM", "number": 14},
+      {"name": "Leroy Sané", "position": "RW", "number": 19},
+      {"name": "Kai Havertz", "position": "CF", "number": 7},
+      {"name": "Serge Gnabry", "position": "LW", "number": 20},
+      {"name": "Pascal Groß", "position": "CM", "number": 13},
+      {"name": "Niclas Füllkrug", "position": "CF", "number": 9},
+      {"name": "Oliver Baumann", "position": "GK", "number": 12}
+    ]
+  },
+  {
+    "team_id": 764,
+    "name": "Brazil",
+    "squad": [
+      {"name": "Alisson", "position": "GK", "number": 1},
+      {"name": "Danilo", "position": "RB", "number": 2},
+      {"name": "Marquinhos", "position": "CB", "number": 4},
+      {"name": "Gabriel Magalhães", "position": "CB", "number": 3},
+      {"name": "Wendell", "position": "LB", "number": 6},
+      {"name": "Bruno Guimarães", "position": "DM", "number": 5},
+      {"name": "Lucas Paquetá", "position": "CM", "number": 8},
+      {"name": "Rodrygo", "position": "RW", "number": 10},
+      {"name": "Vinícius Júnior", "position": "LW", "number": 7},
+      {"name": "Raphinha", "position": "AM", "number": 11},
+      {"name": "Endrick", "position": "CF", "number": 9},
+      {"name": "Éderson", "position": "GK", "number": 12},
+      {"name": "Éder Militão", "position": "CB", "number": 14},
+      {"name": "Savinho", "position": "RW", "number": 19}
+    ]
+  },
+  {
+    "team_id": 773,
+    "name": "France",
+    "squad": [
+      {"name": "Mike Maignan", "position": "GK", "number": 1},
+      {"name": "Jules Koundé", "position": "RB", "number": 5},
+      {"name": "Dayot Upamecano", "position": "CB", "number": 4},
+      {"name": "William Saliba", "position": "CB", "number": 17},
+      {"name": "Theo Hernández", "position": "LB", "number": 22},
+      {"name": "Aurélien Tchouaméni", "position": "DM", "number": 8},
+      {"name": "Eduardo Camavinga", "position": "CM", "number": 6},
+      {"name": "Antoine Griezmann", "position": "AM", "number": 7},
+      {"name": "Ousmane Dembélé", "position": "RW", "number": 11},
+      {"name": "Kylian Mbappé", "position": "CF", "number": 10},
+      {"name": "Bradley Barcola", "position": "LW", "number": 20},
+      {"name": "Brice Samba", "position": "GK", "number": 16},
+      {"name": "Adrien Rabiot", "position": "CM", "number": 14}
+    ]
+  },
+  {
+    "team_id": 762,
+    "name": "Argentina",
+    "squad": [
+      {"name": "Emiliano Martínez", "position": "GK", "number": 23},
+      {"name": "Nahuel Molina", "position": "RB", "number": 26},
+      {"name": "Cristian Romero", "position": "CB", "number": 13},
+      {"name": "Nicolás Otamendi", "position": "CB", "number": 19},
+      {"name": "Nicolás Tagliafico", "position": "LB", "number": 3},
+      {"name": "Rodrigo De Paul", "position": "DM", "number": 7},
+      {"name": "Enzo Fernández", "position": "CM", "number": 24},
+      {"name": "Alexis Mac Allister", "position": "CM", "number": 20},
+      {"name": "Lionel Messi", "position": "RW", "number": 10},
+      {"name": "Julián Álvarez", "position": "CF", "number": 9},
+      {"name": "Ángel Di María", "position": "LW", "number": 11},
+      {"name": "Lautaro Martínez", "position": "CF", "number": 22},
+      {"name": "Geronimo Rulli", "position": "GK", "number": 12}
+    ]
+  },
+  {
+    "team_id": 760,
+    "name": "Spain",
+    "squad": [
+      {"name": "Unai Simón", "position": "GK", "number": 23},
+      {"name": "Dani Carvajal", "position": "RB", "number": 2},
+      {"name": "Robin Le Normand", "position": "CB", "number": 3},
+      {"name": "Aymeric Laporte", "position": "CB", "number": 14},
+      {"name": "Marc Cucurella", "position": "LB", "number": 24},
+      {"name": "Rodri", "position": "DM", "number": 16},
+      {"name": "Pedri", "position": "CM", "number": 8},
+      {"name": "Fabián Ruiz", "position": "CM", "number": 12},
+      {"name": "Lamine Yamal", "position": "RW", "number": 19},
+      {"name": "Álvaro Morata", "position": "CF", "number": 7},
+      {"name": "Nico Williams", "position": "LW", "number": 17},
+      {"name": "Mikel Oyarzabal", "position": "CF", "number": 21},
+      {"name": "David Raya", "position": "GK", "number": 1}
+    ]
+  },
+  {
+    "team_id": 770,
+    "name": "England",
+    "squad": [
+      {"name": "Jordan Pickford", "position": "GK", "number": 1},
+      {"name": "Kyle Walker", "position": "RB", "number": 2},
+      {"name": "John Stones", "position": "CB", "number": 5},
+      {"name": "Marc Guéhi", "position": "CB", "number": 6},
+      {"name": "Kieran Trippier", "position": "LB", "number": 12},
+      {"name": "Declan Rice", "position": "DM", "number": 4},
+      {"name": "Jude Bellingham", "position": "AM", "number": 10},
+      {"name": "Bukayo Saka", "position": "RW", "number": 7},
+      {"name": "Phil Foden", "position": "AM", "number": 11},
+      {"name": "Harry Kane", "position": "CF", "number": 9},
+      {"name": "Cole Palmer", "position": "LW", "number": 24},
+      {"name": "Anthony Gordon", "position": "LW", "number": 17},
+      {"name": "Dean Henderson", "position": "GK", "number": 13}
+    ]
+  }
+]

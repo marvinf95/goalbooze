@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/marvinf95/goalbooze/config"
 	"github.com/marvinf95/goalbooze/internal/client"
 	"github.com/marvinf95/goalbooze/internal/repository"
 )
@@ -36,7 +37,7 @@ func (h *SquadHandler) GetTeams(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	season := currentSeason()
+	season := config.SeasonForLeague(leagueID, currentSeason())
 	if s := r.URL.Query().Get("season"); s != "" {
 		parsed, err := strconv.Atoi(s)
 		if err != nil || parsed < 2000 || parsed > 2100 {
