@@ -50,11 +50,13 @@ func (r *SquadRepository) GetTeams(leagueID, season int) ([]model.Team, error) {
 }
 
 func (r *SquadRepository) GetSquad(teamID int) ([]model.Athlete, error) {
-	season := currentCacheSeason()
+	// Use the most recently cached season for this team. This keeps the lookup
+	// independent of the club-season heuristic, which is wrong for summer
+	// tournaments like the World Cup (cached under the tournament year).
 	var playersJSON string
 	err := r.db.QueryRow(
-		`SELECT players_json FROM squad_cache WHERE team_id = ? AND season = ?`,
-		teamID, season,
+		`SELECT players_json FROM squad_cache WHERE team_id = ? ORDER BY season DESC LIMIT 1`,
+		teamID,
 	).Scan(&playersJSON)
 	if err == sql.ErrNoRows {
 		return nil, nil

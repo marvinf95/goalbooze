@@ -56,7 +56,8 @@ func RunMigrations(db *sql.DB) error {
 		`INSERT OR IGNORE INTO leagues (id, name, slug, season) VALUES
 			(1, '1. Bundesliga',    'bl1', 2025),
 			(2, '2. Bundesliga',    'bl2', 2025),
-			(3, 'Champions League', 'cl',  2025)`,
+			(3, 'Champions League', 'cl',  2025),
+			(4, 'WM 2026',          'wc',  2026)`,
 	}
 
 	for _, s := range schemas {

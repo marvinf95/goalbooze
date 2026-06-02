@@ -1,85 +1,37 @@
 package service
 
 import (
-	"bytes"
 	"crypto/rand"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"math/big"
-	"net/http"
-	"strings"
-	"sync"
-	"time"
 
 	"github.com/marvinf95/goalbooze/internal/model"
 	"github.com/marvinf95/goalbooze/internal/repository"
 )
 
-const anthropicAPIURL = "https://api.anthropic.com/v1/messages"
-
+// AILineupService resolves a starting lineup for an event by trying, in order:
+// the permanent cache, each configured LineupProvider (e.g. Gemini, then Claude),
+// and finally a random squad-based fallback.
 type AILineupService struct {
-	anthropicKey   string
-	anthropicModel string
-	httpClient     *http.Client
-	lineupCache    *repository.LineupCacheRepository
-	squadRepo      *repository.SquadRepository
-	claudeMu       sync.Mutex
+	providers   []LineupProvider
+	lineupCache *repository.LineupCacheRepository
+	squadRepo   *repository.SquadRepository
 }
 
-func NewAILineupService(anthropicKey, anthropicModel string, lineupCache *repository.LineupCacheRepository, squadRepo *repository.SquadRepository) *AILineupService {
-	if anthropicModel == "" {
-		anthropicModel = "claude-haiku-4-5-20251001"
-	}
+// NewAILineupService wires the service with an ordered provider chain. Providers
+// are tried first-to-last; the first one returning a full 11+11 lineup wins.
+func NewAILineupService(providers []LineupProvider, lineupCache *repository.LineupCacheRepository, squadRepo *repository.SquadRepository) *AILineupService {
 	return &AILineupService{
-		anthropicKey:   anthropicKey,
-		anthropicModel: anthropicModel,
-		httpClient:     &http.Client{Timeout: 60 * time.Second},
-		lineupCache:    lineupCache,
-		squadRepo:      squadRepo,
+		providers:   providers,
+		lineupCache: lineupCache,
+		squadRepo:   squadRepo,
 	}
-}
-
-type claudeContentBlock struct {
-	Type      string          `json:"type"`
-	Text      string          `json:"text,omitempty"`
-	ID        string          `json:"id,omitempty"`
-	Name      string          `json:"name,omitempty"`
-	Input     json.RawMessage `json:"input,omitempty"`
-	ToolUseID string          `json:"tool_use_id,omitempty"`
-	Content   json.RawMessage `json:"content,omitempty"`
-}
-
-type claudeMsg struct {
-	Role    string      `json:"role"`
-	Content interface{} `json:"content"`
-}
-
-type claudeRequest struct {
-	Model     string      `json:"model"`
-	MaxTokens int         `json:"max_tokens"`
-	Tools     []claudeTool `json:"tools,omitempty"`
-	Messages  []claudeMsg `json:"messages"`
-}
-
-type claudeTool struct {
-	Type string `json:"type"`
-	Name string `json:"name"`
-}
-
-type claudeResponse struct {
-	Content    []claudeContentBlock `json:"content"`
-	StopReason string               `json:"stop_reason"`
-	Error      *struct {
-		Type    string `json:"type"`
-		Message string `json:"message"`
-	} `json:"error,omitempty"`
 }
 
 // GetLineup fetches the official starting lineup for an event.
-// It tries the cache first, then calls Claude with web search.
-// Falls back to squad-based random selection if Claude is not configured.
+// It tries the cache first, then each provider in order, and finally falls back
+// to squad-based random selection.
 func (s *AILineupService) GetLineup(event model.Event, homeTeamID, awayTeamID int) (home []model.Athlete, away []model.Athlete, isSquadPick bool, err error) {
 	// 1. Check lineup cache
 	if s.lineupCache != nil {
@@ -90,19 +42,19 @@ func (s *AILineupService) GetLineup(event model.Event, homeTeamID, awayTeamID in
 		}
 	}
 
-	// 2. Try Claude AI lineup if configured
-	if s.anthropicKey != "" {
-		home, away, aiErr := s.fetchLineupFromClaude(event)
-		if aiErr == nil && len(home) >= 11 && len(away) >= 11 {
-			// Cache permanently
+	// 2. Try each lineup provider in order
+	for _, p := range s.providers {
+		ph, pa, perr := p.FetchLineup(event)
+		if perr == nil && len(ph) >= 11 && len(pa) >= 11 {
+			log.Printf("lineup from %s for event %d", p.Name(), event.ID)
 			if s.lineupCache != nil {
-				if err := s.lineupCache.Set(event.ID, home, away); err != nil {
+				if err := s.lineupCache.Set(event.ID, ph, pa); err != nil {
 					log.Printf("failed to cache lineup for event %d: %v", event.ID, err)
 				}
 			}
-			return home, away, false, nil
+			return ph, pa, false, nil
 		}
-		log.Printf("AI lineup failed for event %d: %v — using squad fallback", event.ID, aiErr)
+		log.Printf("lineup provider %s failed for event %d: %v — trying next", p.Name(), event.ID, perr)
 	}
 
 	// 3. Squad-based fallback
@@ -111,237 +63,6 @@ func (s *AILineupService) GetLineup(event model.Event, homeTeamID, awayTeamID in
 		return nil, nil, false, err
 	}
 	return home, away, true, nil
-}
-
-func (s *AILineupService) fetchLineupFromClaude(event model.Event) ([]model.Athlete, []model.Athlete, error) {
-	// Serialize Claude calls so concurrent lineup requests don't hit rate limits
-	s.claudeMu.Lock()
-	defer s.claudeMu.Unlock()
-
-	dateStr := event.Date.Format("02.01.2006")
-
-	// Step 1: web search — let Claude answer naturally, no forced JSON format
-	searchPrompt := fmt.Sprintf(
-		"Search for the official starting lineup (Startaufstellung) for the football match: "+
-			"%s vs %s on %s. "+
-			"List all 11 starting players for each team with their jersey number and position.",
-		event.HomeTeam, event.AwayTeam, dateStr,
-	)
-	lineupText, err := s.callClaude(searchPrompt)
-	if err != nil {
-		return nil, nil, err
-	}
-	if lineupText == "" {
-		return nil, nil, fmt.Errorf("empty response from web search")
-	}
-
-	// Step 2: try to extract JSON directly; if Claude already returned it, we're done
-	jsonStr := extractJSON(lineupText)
-
-	if jsonStr == "" {
-		// Claude returned prose — ask a second time to format as JSON (no web search)
-		jsonStr, err = s.formatLineupAsJSON(lineupText, event.HomeTeam, event.AwayTeam)
-		if err != nil {
-			return nil, nil, fmt.Errorf("JSON formatting failed: %w", err)
-		}
-	}
-
-	return s.parseLineupJSON(jsonStr, event)
-}
-
-// formatLineupAsJSON converts a prose lineup description to structured JSON via a
-// simple (non-search) Claude call. Reliable because it's just reformatting known data.
-func (s *AILineupService) formatLineupAsJSON(lineupText, homeTeam, awayTeam string) (string, error) {
-	prompt := fmt.Sprintf(
-		"Convert the following lineup information to JSON. "+
-			"Return ONLY the JSON object, no explanation, no markdown:\n\n"+
-			"%s\n\n"+
-			`{"home":[{"name":"Name","position":"GK","number":1}],"away":[{"name":"Name","position":"GK","number":1}]}`+
-			"\nHome team: %s  Away team: %s  "+
-			"Use positions: GK, CB, RB, LB, CM, DM, RM, LM, AM, RW, LW, CF. "+
-			"Exactly 11 players per team.",
-		lineupText, homeTeam, awayTeam,
-	)
-
-	reqData := claudeRequest{
-		Model:     s.anthropicModel,
-		MaxTokens: 1024,
-		Messages:  []claudeMsg{{Role: "user", Content: prompt}},
-	}
-	body, err := json.Marshal(reqData)
-	if err != nil {
-		return "", err
-	}
-
-	req, err := http.NewRequest("POST", anthropicAPIURL, bytes.NewReader(body))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("x-api-key", s.anthropicKey)
-	req.Header.Set("anthropic-version", "2023-06-01")
-	req.Header.Set("content-type", "application/json")
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("http request failed: %w", err)
-	}
-	respBody, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	if err != nil {
-		return "", err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("claude API error %d: %s", resp.StatusCode, string(respBody))
-	}
-
-	var claudeResp claudeResponse
-	if err := json.Unmarshal(respBody, &claudeResp); err != nil {
-		return "", fmt.Errorf("failed to decode response: %w", err)
-	}
-	if claudeResp.Error != nil {
-		return "", fmt.Errorf("claude error: %s", claudeResp.Error.Message)
-	}
-
-	var text string
-	for _, block := range claudeResp.Content {
-		if block.Type == "text" {
-			text += block.Text
-		}
-	}
-
-	jsonStr := extractJSON(text)
-	if jsonStr == "" {
-		return "", fmt.Errorf("no JSON in formatting response")
-	}
-	return jsonStr, nil
-}
-
-func (s *AILineupService) parseLineupJSON(jsonStr string, event model.Event) ([]model.Athlete, []model.Athlete, error) {
-	var data struct {
-		Home []struct {
-			Name     string `json:"name"`
-			Position string `json:"position"`
-			Number   int    `json:"number"`
-		} `json:"home"`
-		Away []struct {
-			Name     string `json:"name"`
-			Position string `json:"position"`
-			Number   int    `json:"number"`
-		} `json:"away"`
-	}
-	if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
-		return nil, nil, fmt.Errorf("JSON parse failed: %w", err)
-	}
-
-	home := make([]model.Athlete, 0, len(data.Home))
-	for i, p := range data.Home {
-		home = append(home, model.Athlete{
-			ID: event.ID*1000 + i, Name: p.Name,
-			Position: p.Position, Number: p.Number, Team: event.HomeTeam,
-		})
-	}
-	away := make([]model.Athlete, 0, len(data.Away))
-	for i, p := range data.Away {
-		away = append(away, model.Athlete{
-			ID: event.ID*1000 + 100 + i, Name: p.Name,
-			Position: p.Position, Number: p.Number, Team: event.AwayTeam,
-		})
-	}
-
-	if len(home) < 11 || len(away) < 11 {
-		return nil, nil, fmt.Errorf("incomplete lineup: home=%d away=%d", len(home), len(away))
-	}
-	return home, away, nil
-}
-
-func (s *AILineupService) callClaude(prompt string) (string, error) {
-	messages := []claudeMsg{{Role: "user", Content: prompt}}
-
-	for attempt := 0; attempt < 5; attempt++ {
-		reqData := claudeRequest{
-			Model:     s.anthropicModel,
-			MaxTokens: 1024,
-			Tools:     []claudeTool{{Type: "web_search_20250305", Name: "web_search"}},
-			Messages:  messages,
-		}
-
-		body, err := json.Marshal(reqData)
-		if err != nil {
-			return "", err
-		}
-
-		req, err := http.NewRequest("POST", anthropicAPIURL, bytes.NewReader(body))
-		if err != nil {
-			return "", err
-		}
-		req.Header.Set("x-api-key", s.anthropicKey)
-		req.Header.Set("anthropic-version", "2023-06-01")
-		req.Header.Set("anthropic-beta", "web-search-2025-03-05")
-		req.Header.Set("content-type", "application/json")
-
-		resp, err := s.httpClient.Do(req)
-		if err != nil {
-			return "", fmt.Errorf("http request failed: %w", err)
-		}
-		respBody, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			return "", fmt.Errorf("failed to read response: %w", err)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			return "", fmt.Errorf("claude API error %d: %s", resp.StatusCode, string(respBody))
-		}
-
-		var claudeResp claudeResponse
-		if err := json.Unmarshal(respBody, &claudeResp); err != nil {
-			return "", fmt.Errorf("failed to decode response: %w", err)
-		}
-		if claudeResp.Error != nil {
-			return "", fmt.Errorf("claude error: %s", claudeResp.Error.Message)
-		}
-
-		var textContent string
-		var toolUseBlocks []claudeContentBlock
-		for _, block := range claudeResp.Content {
-			switch block.Type {
-			case "text":
-				textContent += block.Text
-			case "tool_use":
-				toolUseBlocks = append(toolUseBlocks, block)
-			}
-		}
-
-		if claudeResp.StopReason == "end_turn" || len(toolUseBlocks) == 0 {
-			return textContent, nil
-		}
-
-		// Handle tool_use: add assistant message and send tool results
-		messages = append(messages, claudeMsg{Role: "assistant", Content: claudeResp.Content})
-
-		toolResults := make([]claudeContentBlock, 0, len(toolUseBlocks))
-		for _, tu := range toolUseBlocks {
-			// Find matching web_search_tool_result in response (Anthropic server-side)
-			var resultContent json.RawMessage
-			for _, block := range claudeResp.Content {
-				if block.Type == "web_search_tool_result" {
-					resultContent = block.Content
-					break
-				}
-			}
-			if resultContent == nil {
-				resultContent = json.RawMessage(`"Search completed"`)
-			}
-			toolResults = append(toolResults, claudeContentBlock{
-				Type:      "tool_result",
-				ToolUseID: tu.ID,
-				Content:   resultContent,
-			})
-		}
-		messages = append(messages, claudeMsg{Role: "user", Content: toolResults})
-	}
-
-	return "", fmt.Errorf("max iterations reached without response")
 }
 
 func (s *AILineupService) buildSquadLineup(homeTeamID, awayTeamID int, event model.Event) ([]model.Athlete, []model.Athlete, error) {
@@ -382,24 +103,4 @@ func pickEleven(squad []model.Athlete, teamName string) []model.Athlete {
 		cp = cp[:11]
 	}
 	return cp
-}
-
-func extractJSON(text string) string {
-	start := strings.Index(text, "{")
-	if start < 0 {
-		return ""
-	}
-	depth := 0
-	for i := start; i < len(text); i++ {
-		switch text[i] {
-		case '{':
-			depth++
-		case '}':
-			depth--
-			if depth == 0 {
-				return text[start : i+1]
-			}
-		}
-	}
-	return ""
 }
