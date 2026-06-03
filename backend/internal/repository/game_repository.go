@@ -59,7 +59,7 @@ func (r *GameRepository) GetAll() ([]model.Game, error) {
 		return nil, err
 	}
 
-	var games []model.Game
+	games := []model.Game{} // nicht-nil, damit leere Liste als [] statt null serialisiert wird
 	for rows.Next() {
 		var g model.Game
 		var createdAt string
