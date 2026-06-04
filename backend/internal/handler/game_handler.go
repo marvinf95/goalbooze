@@ -34,6 +34,9 @@ type createEventReq struct {
 	Date       string          `json:"date,omitempty"`
 	HomeLineup []model.Athlete `json:"home_lineup,omitempty"`
 	AwayLineup []model.Athlete `json:"away_lineup,omitempty"`
+	// Manual marks a self-created match: the provided lineups are used as-is
+	// (>=1 athlete per team), bypassing the AI/squad lookup.
+	Manual bool `json:"manual,omitempty"`
 }
 
 type createGameRequest struct {
@@ -107,7 +110,15 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 
 		var home, away []model.Athlete
 
-		if len(evReq.HomeLineup) >= 11 && len(evReq.AwayLineup) >= 11 {
+		if evReq.Manual {
+			// Self-created match: use the entered athletes directly, no AI/squad fallback.
+			if len(evReq.HomeLineup) == 0 || len(evReq.AwayLineup) == 0 {
+				jsonError(w, "manual event requires at least one athlete per team", http.StatusBadRequest)
+				return
+			}
+			home = evReq.HomeLineup
+			away = evReq.AwayLineup
+		} else if len(evReq.HomeLineup) >= 11 && len(evReq.AwayLineup) >= 11 {
 			home = evReq.HomeLineup
 			away = evReq.AwayLineup
 		} else {

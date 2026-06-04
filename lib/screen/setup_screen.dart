@@ -19,10 +19,20 @@ class _SetupScreenState extends ConsumerState<SetupScreen>
   final _nameController = TextEditingController();
   int _selectedLeagueId = 1;
 
+  // Manual mode: self-entered match + athletes (no football-data).
+  bool _manualMode = false;
+  final _homeTeamController = TextEditingController();
+  final _awayTeamController = TextEditingController();
+  final List<String> _homeAthletes = [];
+  final List<String> _awayAthletes = [];
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    // Re-evaluate the proceed button as team names are typed.
+    _homeTeamController.addListener(_onChanged);
+    _awayTeamController.addListener(_onChanged);
     // Reset any previous game state
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(gameProvider.notifier).reset();
@@ -33,8 +43,12 @@ class _SetupScreenState extends ConsumerState<SetupScreen>
   void dispose() {
     _tabController.dispose();
     _nameController.dispose();
+    _homeTeamController.dispose();
+    _awayTeamController.dispose();
     super.dispose();
   }
+
+  void _onChanged() => setState(() {});
 
   void _addPlayer() {
     final name = _nameController.text.trim();
@@ -45,7 +59,34 @@ class _SetupScreenState extends ConsumerState<SetupScreen>
 
   bool get _canProceed {
     final state = ref.read(gameProvider);
-    return state.players.isNotEmpty && state.selectedEvents.isNotEmpty;
+    if (state.players.isEmpty) return false;
+    if (_manualMode) {
+      return _homeTeamController.text.trim().isNotEmpty &&
+          _awayTeamController.text.trim().isNotEmpty &&
+          _homeAthletes.isNotEmpty &&
+          _awayAthletes.isNotEmpty;
+    }
+    return state.selectedEvents.isNotEmpty;
+  }
+
+  Future<void> _startManualGame() async {
+    final notifier = ref.read(gameProvider.notifier);
+    notifier.setManualMatch(
+      homeTeam: _homeTeamController.text,
+      awayTeam: _awayTeamController.text,
+      homeAthletes: _homeAthletes,
+      awayAthletes: _awayAthletes,
+    );
+    await notifier.createGame(manual: true);
+    if (!mounted) return;
+    final state = ref.read(gameProvider);
+    if (state.currentGame != null) {
+      context.go('/game/${state.currentGame!.id}');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(state.error ?? 'Spiel konnte nicht erstellt werden')),
+      );
+    }
   }
 
   @override
@@ -64,14 +105,22 @@ class _SetupScreenState extends ConsumerState<SetupScreen>
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: FilledButton(
-              onPressed: _canProceed
-                  ? () => context.push('/new-game/lineup')
-                  : null,
+              onPressed: !_canProceed || gameState.isLoading
+                  ? null
+                  : (_manualMode
+                      ? _startManualGame
+                      : () => context.push('/new-game/lineup')),
               style: FilledButton.styleFrom(
                 minimumSize: const Size(90, 36),
                 padding: const EdgeInsets.symmetric(horizontal: 16),
               ),
-              child: const Text('Weiter'),
+              child: gameState.isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(_manualMode ? 'Spiel starten' : 'Weiter'),
             ),
           ),
         ],
@@ -96,27 +145,69 @@ class _SetupScreenState extends ConsumerState<SetupScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.sports_soccer, size: 18),
+                  Icon(_manualMode ? Icons.edit : Icons.sports_soccer, size: 18),
                   const SizedBox(width: 6),
-                  Text('Spiele (${gameState.selectedEvents.length})'),
+                  Text(_manualMode
+                      ? 'Match'
+                      : 'Spiele (${gameState.selectedEvents.length})'),
                 ],
               ),
             ),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _PlayersTab(
-            controller: _nameController,
-            onAdd: _addPlayer,
-            players: gameState.players,
-            onRemove: (name) => ref.read(gameProvider.notifier).removePlayer(name),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(
+                  value: false,
+                  label: Text('Aus Spielplan'),
+                  icon: Icon(Icons.calendar_month, size: 18),
+                ),
+                ButtonSegment(
+                  value: true,
+                  label: Text('Manuell'),
+                  icon: Icon(Icons.edit, size: 18),
+                ),
+              ],
+              selected: {_manualMode},
+              onSelectionChanged: (s) => setState(() => _manualMode = s.first),
+            ),
           ),
-          _EventsTab(
-            selectedLeagueId: _selectedLeagueId,
-            onLeagueChanged: (id) => setState(() => _selectedLeagueId = id),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _PlayersTab(
+                  controller: _nameController,
+                  onAdd: _addPlayer,
+                  players: gameState.players,
+                  onRemove: (name) =>
+                      ref.read(gameProvider.notifier).removePlayer(name),
+                ),
+                _manualMode
+                    ? _ManualMatchTab(
+                        homeTeamController: _homeTeamController,
+                        awayTeamController: _awayTeamController,
+                        homeAthletes: _homeAthletes,
+                        awayAthletes: _awayAthletes,
+                        onAddHome: (n) => setState(() => _homeAthletes.add(n)),
+                        onRemoveHome: (i) =>
+                            setState(() => _homeAthletes.removeAt(i)),
+                        onAddAway: (n) => setState(() => _awayAthletes.add(n)),
+                        onRemoveAway: (i) =>
+                            setState(() => _awayAthletes.removeAt(i)),
+                      )
+                    : _EventsTab(
+                        selectedLeagueId: _selectedLeagueId,
+                        onLeagueChanged: (id) =>
+                            setState(() => _selectedLeagueId = id),
+                      ),
+              ],
+            ),
           ),
         ],
       ),
@@ -242,6 +333,188 @@ class _PlayersTab extends StatelessWidget {
                     },
                   ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ManualMatchTab extends StatefulWidget {
+  final TextEditingController homeTeamController;
+  final TextEditingController awayTeamController;
+  final List<String> homeAthletes;
+  final List<String> awayAthletes;
+  final void Function(String) onAddHome;
+  final void Function(int) onRemoveHome;
+  final void Function(String) onAddAway;
+  final void Function(int) onRemoveAway;
+
+  const _ManualMatchTab({
+    required this.homeTeamController,
+    required this.awayTeamController,
+    required this.homeAthletes,
+    required this.awayAthletes,
+    required this.onAddHome,
+    required this.onRemoveHome,
+    required this.onAddAway,
+    required this.onRemoveAway,
+  });
+
+  @override
+  State<_ManualMatchTab> createState() => _ManualMatchTabState();
+}
+
+class _ManualMatchTabState extends State<_ManualMatchTab> {
+  final _homeAddController = TextEditingController();
+  final _awayAddController = TextEditingController();
+
+  @override
+  void dispose() {
+    _homeAddController.dispose();
+    _awayAddController.dispose();
+    super.dispose();
+  }
+
+  void _addHome() {
+    final name = _homeAddController.text.trim();
+    if (name.isEmpty) return;
+    widget.onAddHome(name);
+    _homeAddController.clear();
+  }
+
+  void _addAway() {
+    final name = _awayAddController.text.trim();
+    if (name.isEmpty) return;
+    widget.onAddAway(name);
+    _awayAddController.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(
+          'Trage beide Mannschaften und ihre Spieler ein. Jeder Gast bekommt '
+          'beim Start zufällig je einen Heim- und einen Gast-Spieler.',
+          style: theme.textTheme.bodySmall,
+        ),
+        const SizedBox(height: 16),
+        _TeamCard(
+          accent: const Color(0xFF4C8DFF),
+          label: 'Heimmannschaft',
+          teamController: widget.homeTeamController,
+          addController: _homeAddController,
+          athletes: widget.homeAthletes,
+          onAdd: _addHome,
+          onRemove: widget.onRemoveHome,
+        ),
+        const SizedBox(height: 16),
+        _TeamCard(
+          accent: const Color(0xFFFF6B35),
+          label: 'Gastmannschaft',
+          teamController: widget.awayTeamController,
+          addController: _awayAddController,
+          athletes: widget.awayAthletes,
+          onAdd: _addAway,
+          onRemove: widget.onRemoveAway,
+        ),
+      ],
+    );
+  }
+}
+
+class _TeamCard extends StatelessWidget {
+  final Color accent;
+  final String label;
+  final TextEditingController teamController;
+  final TextEditingController addController;
+  final List<String> athletes;
+  final VoidCallback onAdd;
+  final void Function(int) onRemove;
+
+  const _TeamCard({
+    required this.accent,
+    required this.label,
+    required this.teamController,
+    required this.addController,
+    required this.athletes,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(width: 10, height: 10,
+                  decoration: BoxDecoration(color: accent, shape: BoxShape.circle)),
+              const SizedBox(width: 8),
+              Text(label,
+                  style: theme.textTheme.labelSmall?.copyWith(color: accent)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: teamController,
+            decoration: const InputDecoration(hintText: 'Mannschaftsname'),
+            textCapitalization: TextCapitalization.words,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: addController,
+                  decoration: const InputDecoration(
+                    hintText: 'Spielername...',
+                    prefixIcon: Icon(Icons.person_add_outlined),
+                  ),
+                  onSubmitted: (_) => onAdd(),
+                  textCapitalization: TextCapitalization.words,
+                ),
+              ),
+              const SizedBox(width: 10),
+              FilledButton(
+                onPressed: onAdd,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(48, 54),
+                  padding: EdgeInsets.zero,
+                ),
+                child: const Icon(Icons.add),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (athletes.isEmpty)
+            Text('Noch keine Spieler', style: theme.textTheme.bodySmall)
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (var i = 0; i < athletes.length; i++)
+                  Chip(
+                    label: Text(athletes[i]),
+                    onDeleted: () => onRemove(i),
+                    deleteIcon: const Icon(Icons.close, size: 16),
+                  ),
+              ],
+            ),
         ],
       ),
     );

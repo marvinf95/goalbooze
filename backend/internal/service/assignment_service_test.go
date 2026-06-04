@@ -109,6 +109,9 @@ func TestAssign_MultipleEvents(t *testing.T) {
 	}
 }
 
+// With fewer athletes than players (e.g. a manual game with just 1-3 athletes
+// per team), every player must still get one home and one away athlete — the
+// pool is cycled, duplicates are allowed.
 func TestAssign_MorePlayersThanAthletes(t *testing.T) {
 	svc := NewAssignmentService()
 
@@ -138,8 +141,55 @@ func TestAssign_MorePlayersThanAthletes(t *testing.T) {
 
 	assignments := svc.Assign(players, events, lineupMap)
 
+	if len(assignments) != len(players)*2 {
+		t.Fatalf("expected %d assignments (each player one home + one away), got %d",
+			len(players)*2, len(assignments))
+	}
+
+	homePerPlayer := make(map[string]int)
+	awayPerPlayer := make(map[string]int)
+	for _, a := range assignments {
+		switch a.TeamName {
+		case "Home":
+			homePerPlayer[a.PlayerName]++
+		case "Away":
+			awayPerPlayer[a.PlayerName]++
+		default:
+			t.Errorf("unexpected team %q", a.TeamName)
+		}
+	}
+	for _, p := range players {
+		if homePerPlayer[p.Name] != 1 || awayPerPlayer[p.Name] != 1 {
+			t.Errorf("player %s got home=%d away=%d, expected 1/1",
+				p.Name, homePerPlayer[p.Name], awayPerPlayer[p.Name])
+		}
+	}
+}
+
+// A manual game can have just one athlete per team; everyone shares that athlete.
+func TestAssign_SingleAthletePerTeam(t *testing.T) {
+	svc := NewAssignmentService()
+	players := []model.Player{{Name: "A"}, {Name: "B"}, {Name: "C"}}
+	events := []model.Event{{ID: 7}}
+	lineupMap := map[int]LineupPair{
+		7: {
+			Home: []model.Athlete{{ID: 1, Name: "Solo-H", Team: "Rot"}},
+			Away: []model.Athlete{{ID: 2, Name: "Solo-A", Team: "Blau"}},
+		},
+	}
+
+	assignments := svc.Assign(players, events, lineupMap)
+
 	if len(assignments) != 6 {
-		t.Errorf("expected 6 assignments (3 home + 3 away, capped), got %d", len(assignments))
+		t.Fatalf("expected 6 assignments (3 players × 2 teams), got %d", len(assignments))
+	}
+	for _, a := range assignments {
+		if a.TeamName == "Rot" && a.AthleteName != "Solo-H" {
+			t.Errorf("home athlete should be Solo-H, got %s", a.AthleteName)
+		}
+		if a.TeamName == "Blau" && a.AthleteName != "Solo-A" {
+			t.Errorf("away athlete should be Solo-A, got %s", a.AthleteName)
+		}
 	}
 }
 

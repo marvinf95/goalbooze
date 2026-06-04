@@ -87,7 +87,48 @@ class GameNotifier extends StateNotifier<GameState> {
     state = state.copyWith(homeLineups: newHome, awayLineups: newAway);
   }
 
-  Future<void> createGame() async {
+  /// Builds a fully manual match (self-entered teams + athlete names) as the
+  /// single selected event. Athlete names are turned into [Athlete]s; positions
+  /// and numbers are left empty. Used by the manual setup mode.
+  static const manualEventId = -1;
+
+  void setManualMatch({
+    required String homeTeam,
+    required String awayTeam,
+    required List<String> homeAthletes,
+    required List<String> awayAthletes,
+  }) {
+    List<Athlete> toAthletes(List<String> names, String team) {
+      final cleaned = names.map((n) => n.trim()).where((n) => n.isNotEmpty);
+      var i = 0;
+      return cleaned
+          .map((n) => Athlete(
+                id: manualEventId * 1000 - (i++),
+                name: n,
+                number: 0,
+                position: '',
+                team: team,
+              ))
+          .toList();
+    }
+
+    final event = SportEvent(
+      id: manualEventId,
+      leagueId: 0,
+      homeTeam: homeTeam.trim(),
+      awayTeam: awayTeam.trim(),
+      date: DateTime.now(),
+      status: 'manual',
+    );
+
+    state = state.copyWith(
+      selectedEvents: [event],
+      homeLineups: {manualEventId: toAthletes(homeAthletes, homeTeam.trim())},
+      awayLineups: {manualEventId: toAthletes(awayAthletes, awayTeam.trim())},
+    );
+  }
+
+  Future<void> createGame({bool manual = false}) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final game = await _api.createGame(
@@ -95,6 +136,7 @@ class GameNotifier extends StateNotifier<GameState> {
         events: state.selectedEvents,
         homeLineups: state.homeLineups.isEmpty ? null : state.homeLineups,
         awayLineups: state.awayLineups.isEmpty ? null : state.awayLineups,
+        manual: manual,
       );
       state = state.copyWith(currentGame: game, isLoading: false);
     } catch (e) {
