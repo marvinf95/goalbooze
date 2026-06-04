@@ -26,23 +26,29 @@ func (s *AssignmentService) Assign(players []model.Player, events []model.Event,
 		shuffledHome := shuffleCopy(pair.Home, rng)
 		shuffledAway := shuffleCopy(pair.Away, rng)
 
+		// Assign cyclically so every player gets one home and one away athlete,
+		// even when a team has fewer athletes than players (manual games may have
+		// as few as 1 per team). When a team has >= players (e.g. the 11-strong
+		// football-data lineups), i%len == i, so behaviour is unchanged there.
 		for i, player := range players {
-			if i < len(shuffledHome) {
+			if len(shuffledHome) > 0 {
+				a := shuffledHome[i%len(shuffledHome)]
 				assignments = append(assignments, model.Assignment{
 					PlayerName:  player.Name,
-					AthleteName: shuffledHome[i].Name,
-					TeamName:    shuffledHome[i].Team,
+					AthleteName: a.Name,
+					TeamName:    a.Team,
 					EventID:     event.ID,
-					Position:    shuffledHome[i].Position,
+					Position:    a.Position,
 				})
 			}
-			if i < len(shuffledAway) {
+			if len(shuffledAway) > 0 {
+				a := shuffledAway[i%len(shuffledAway)]
 				assignments = append(assignments, model.Assignment{
 					PlayerName:  player.Name,
-					AthleteName: shuffledAway[i].Name,
-					TeamName:    shuffledAway[i].Team,
+					AthleteName: a.Name,
+					TeamName:    a.Team,
 					EventID:     event.ID,
-					Position:    shuffledAway[i].Position,
+					Position:    a.Position,
 				})
 			}
 		}

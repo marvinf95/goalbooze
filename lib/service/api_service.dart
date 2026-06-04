@@ -98,6 +98,7 @@ class ApiService {
     required List<SportEvent> events,
     Map<int, List<Athlete>>? homeLineups,
     Map<int, List<Athlete>>? awayLineups,
+    bool manual = false,
   }) async {
     final eventsPayload = events.map((e) {
       final payload = <String, dynamic>{
@@ -108,6 +109,7 @@ class ApiService {
         'away_team': e.awayTeam,
         'away_team_id': e.awayTeamId,
         'date': e.date.toIso8601String(),
+        if (manual) 'manual': true,
       };
       if (homeLineups != null && homeLineups.containsKey(e.id)) {
         payload['home_lineup'] =
