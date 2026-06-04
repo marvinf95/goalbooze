@@ -108,7 +108,10 @@ class ApiService {
         'home_team_id': e.homeTeamId,
         'away_team': e.awayTeam,
         'away_team_id': e.awayTeamId,
-        'date': e.date.toIso8601String(),
+        // Always send UTC so the string carries a timezone (…Z); the Go backend
+        // parses strictly as RFC3339, which requires an offset. A local
+        // DateTime (e.g. DateTime.now()) would serialize without one and 400.
+        'date': e.date.toUtc().toIso8601String(),
         if (manual) 'manual': true,
       };
       if (homeLineups != null && homeLineups.containsKey(e.id)) {
