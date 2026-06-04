@@ -117,7 +117,7 @@ class GameNotifier extends StateNotifier<GameState> {
       leagueId: 0,
       homeTeam: homeTeam.trim(),
       awayTeam: awayTeam.trim(),
-      date: DateTime.now(),
+      date: DateTime.now().toUtc(),
       status: 'manual',
     );
 
