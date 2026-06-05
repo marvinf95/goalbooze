@@ -33,4 +33,18 @@ class SportEvent {
   }
 
   String get displayName => '$homeTeam vs $awayTeam';
+
+  /// Whether the kickoff is within the next hour (or already started). Official
+  /// lineups are usually published at most ~1 hour before kickoff, so AI lineup
+  /// lookup only makes sense once this window is open.
+  bool get isLineupWindowOpen =>
+      date.difference(DateTime.now()) < const Duration(hours: 1);
+
+  /// Whether the kickoff falls on the same local calendar day as [reference].
+  bool isOnSameLocalDay(DateTime reference) {
+    final local = date.toLocal();
+    return local.year == reference.year &&
+        local.month == reference.month &&
+        local.day == reference.day;
+  }
 }
