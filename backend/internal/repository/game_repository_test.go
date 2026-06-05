@@ -186,8 +186,8 @@ func TestDeleteGame(t *testing.T) {
 	repo := NewGameRepository(db)
 
 	game := &model.Game{
-		Players:   []model.Player{{Name: "DeleteMe"}},
-		Events:    []model.Event{{ID: 303, LeagueID: 78, HomeTeam: "FCB", AwayTeam: "BVB"}},
+		Players: []model.Player{{Name: "DeleteMe"}},
+		Events:  []model.Event{{ID: 303, LeagueID: 78, HomeTeam: "FCB", AwayTeam: "BVB"}},
 		Assignments: []model.Assignment{
 			{PlayerName: "DeleteMe", AthleteName: "Kane", TeamName: "FCB", EventID: 303, Position: "Forward"},
 		},

@@ -20,7 +20,7 @@ func NewLeagueHandler(apiClient client.SportsAPIClient) *LeagueHandler {
 }
 
 func (h *LeagueHandler) GetLeagues(w http.ResponseWriter, r *http.Request) {
-	clubSeason := currentSeason()
+	clubSeason := config.CurrentSeason()
 	leagues := make([]map[string]interface{}, 0, len(config.Leagues))
 	for _, lc := range config.Leagues {
 		leagues = append(leagues, map[string]interface{}{
@@ -42,7 +42,7 @@ func (h *LeagueHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	season := config.SeasonForLeague(leagueID, currentSeason())
+	season := config.SeasonForLeague(leagueID, config.CurrentSeason())
 	if s := r.URL.Query().Get("season"); s != "" {
 		parsed, err := strconv.Atoi(s)
 		if err != nil || parsed < 2000 || parsed > 2100 {

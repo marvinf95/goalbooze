@@ -98,4 +98,62 @@ void main() {
     expect(state.selectedEventIds, isEmpty);
     expect(state.currentGame, isNull);
   });
+
+  group('setManualMatch', () {
+    test('creates a single manual event with the entered teams', () {
+      final container = ProviderContainer();
+      final notifier = container.read(gameProvider.notifier);
+
+      notifier.setManualMatch(
+        homeTeam: 'Rot',
+        awayTeam: 'Blau',
+        homeAthletes: ['Anna', 'Ben'],
+        awayAthletes: ['Cara'],
+      );
+
+      final state = container.read(gameProvider);
+      expect(state.selectedEvents, hasLength(1));
+      final ev = state.selectedEvents.single;
+      expect(ev.id, GameNotifier.manualEventId);
+      expect(ev.status, 'manual');
+      expect(ev.homeTeam, 'Rot');
+      expect(ev.awayTeam, 'Blau');
+    });
+
+    test('builds athletes from names and assigns the team', () {
+      final container = ProviderContainer();
+      final notifier = container.read(gameProvider.notifier);
+
+      notifier.setManualMatch(
+        homeTeam: 'Rot',
+        awayTeam: 'Blau',
+        homeAthletes: ['Anna', 'Ben'],
+        awayAthletes: ['Cara'],
+      );
+
+      final state = container.read(gameProvider);
+      final home = state.homeLineups[GameNotifier.manualEventId]!;
+      final away = state.awayLineups[GameNotifier.manualEventId]!;
+      expect(home.map((a) => a.name), ['Anna', 'Ben']);
+      expect(home.every((a) => a.team == 'Rot'), isTrue);
+      expect(away.map((a) => a.name), ['Cara']);
+      expect(away.single.team, 'Blau');
+    });
+
+    test('filters out empty and whitespace-only names', () {
+      final container = ProviderContainer();
+      final notifier = container.read(gameProvider.notifier);
+
+      notifier.setManualMatch(
+        homeTeam: 'Rot',
+        awayTeam: 'Blau',
+        homeAthletes: ['Anna', '', '  ', 'Ben'],
+        awayAthletes: ['Cara'],
+      );
+
+      final home =
+          container.read(gameProvider).homeLineups[GameNotifier.manualEventId]!;
+      expect(home.map((a) => a.name), ['Anna', 'Ben']);
+    });
+  });
 }

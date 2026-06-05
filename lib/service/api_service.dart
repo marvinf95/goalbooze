@@ -25,13 +25,15 @@ int seasonForLeague(int leagueId) {
 class ApiService {
   final Dio _dio;
 
-  ApiService({required String baseUrl})
-      : _dio = Dio(BaseOptions(
-          baseUrl: baseUrl,
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 60),
-          headers: {'Content-Type': 'application/json'},
-        ));
+  /// [dio] can be injected in tests; production uses a configured client.
+  ApiService({required String baseUrl, Dio? dio})
+      : _dio = dio ??
+            Dio(BaseOptions(
+              baseUrl: baseUrl,
+              connectTimeout: const Duration(seconds: 10),
+              receiveTimeout: const Duration(seconds: 60),
+              headers: {'Content-Type': 'application/json'},
+            ));
 
   Future<List<League>> getLeagues() async {
     final response = await _dio.get('/api/v1/leagues');

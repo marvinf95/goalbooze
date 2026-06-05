@@ -115,11 +115,3 @@ func (r *SquadRepository) IsCacheStale(leagueID, season int) (bool, error) {
 	}
 	return time.Since(t) > 24*time.Hour, nil
 }
-
-func currentCacheSeason() int {
-	now := time.Now()
-	if now.Month() < 7 {
-		return now.Year() - 1
-	}
-	return now.Year()
-}

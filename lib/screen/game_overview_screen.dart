@@ -79,6 +79,8 @@ class _GameView extends StatelessWidget {
     for (final a in game.assignments) {
       grouped.putIfAbsent(a.playerName, () => []).add(a);
     }
+    // Map each event to its home team so assignments can be coloured by side.
+    final homeTeamByEvent = {for (final e in game.events) e.id: e.homeTeam};
 
     if (grouped.isEmpty) {
       return Center(
@@ -125,6 +127,7 @@ class _GameView extends StatelessWidget {
           return _PlayerCard(
             playerName: playerName,
             assignments: assignments,
+            homeTeamByEvent: homeTeamByEvent,
             animationDelay: Duration(milliseconds: idx * 80),
           );
         }),
@@ -145,11 +148,13 @@ class _GameView extends StatelessWidget {
 class _PlayerCard extends StatelessWidget {
   final String playerName;
   final List<Assignment> assignments;
+  final Map<int, String> homeTeamByEvent;
   final Duration animationDelay;
 
   const _PlayerCard({
     required this.playerName,
     required this.assignments,
+    required this.homeTeamByEvent,
     required this.animationDelay,
   });
 
@@ -195,7 +200,10 @@ class _PlayerCard extends StatelessWidget {
             Divider(color: theme.colorScheme.outline, height: 1),
             const SizedBox(height: 12),
             // Athlete assignments
-            ...assignments.map((a) => _AssignmentRow(assignment: a)),
+            ...assignments.map((a) => _AssignmentRow(
+                  assignment: a,
+                  isHome: homeTeamByEvent[a.eventId] == a.teamName,
+                )),
           ],
         ),
       ),
@@ -208,13 +216,13 @@ class _PlayerCard extends StatelessWidget {
 
 class _AssignmentRow extends StatelessWidget {
   final Assignment assignment;
+  final bool isHome;
 
-  const _AssignmentRow({required this.assignment});
+  const _AssignmentRow({required this.assignment, required this.isHome});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isHome = !assignment.teamName.contains('(away)');
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),

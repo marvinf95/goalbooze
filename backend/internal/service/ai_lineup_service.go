@@ -45,7 +45,7 @@ func (s *AILineupService) GetLineup(event model.Event, homeTeamID, awayTeamID in
 	// 2. Try each lineup provider in order
 	for _, p := range s.providers {
 		ph, pa, perr := p.FetchLineup(event)
-		if perr == nil && len(ph) >= 11 && len(pa) >= 11 {
+		if perr == nil && len(ph) >= PlayersPerTeam && len(pa) >= PlayersPerTeam {
 			log.Printf("lineup from %s for event %d", p.Name(), event.ID)
 			if s.lineupCache != nil {
 				if err := s.lineupCache.Set(event.ID, ph, pa); err != nil {

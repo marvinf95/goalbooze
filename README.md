@@ -1,125 +1,164 @@
 # GoalBooze
 
-Party-Trinkspiel für Bundesliga-Abende. Jeder Spieler bekommt zufällig Athleten aus den Startaufstellungen zugewiesen — Tor, Rote Karte, Auswechslung: Es wird getrunken.
+Party drinking game for football match nights. Every player is randomly assigned athletes from the starting lineups — goal, red card, substitution: time to drink.
 
 ---
 
-## Spielregeln
+## Rules
 
-| Ereignis | Regel |
-|----------|-------|
-| Tor | 2 Schlücke |
-| Rote Karte | 5 Schlücke |
-| Auswechslung | Du übernimmst den eingewechselten Spieler |
-| Torwart kassiert Gegentor | 1 Schluck |
-| Zuweisung | Jeder bekommt 1 Athlet pro Team pro Spiel |
+| Event | Rule |
+|-------|------|
+| Goal | 2 sips |
+| Red card | 5 sips |
+| Substitution | You take over the substituted-in player |
+| Goalkeeper concedes | 1 sip |
+| Assignment | Everyone gets 1 athlete per team per match |
 
 ---
 
-## Tech-Stack
+## Tech stack
 
-| Komponente | Technologie |
-|------------|-------------|
-| Frontend | Flutter (Dart) — Mobile & Web |
-| State Management | Riverpod |
+| Component | Technology |
+|-----------|------------|
+| Frontend | Flutter (Dart) — mobile & web |
+| State management | Riverpod |
 | Routing | go_router |
 | Backend | Go 1.22 + chi v5 |
-| Datenbank | SQLite (modernc.org/sqlite) |
-| Spielpläne & Kader | [football-data.org](https://www.football-data.org) |
-| Live-Lineups | Claude API (Haiku) + WebSearch |
+| Database | SQLite (modernc.org/sqlite) |
+| Fixtures & squads | [football-data.org](https://www.football-data.org) |
+| Live lineups | Google Gemini (free tier) → Anthropic Claude fallback, both with web search |
 
 ---
 
-## Lokale Entwicklung
+## How lineups are resolved
 
-### Voraussetzungen
+Clubs publish their starting eleven only ~90 minutes before kickoff, and no free API delivers them earlier. GoalBooze resolves a lineup in this order:
+
+1. **Permanent cache** — once fetched, a match lineup is stored and never re-fetched.
+2. **AI provider chain** — **Gemini** (free tier, tried first to save tokens) then **Claude** as fallback, each using web search to find the official lineup. Configure either, both, or neither.
+3. **Squad fallback** — a random eleven from the cached season squad.
+4. **Manual mode** — create a match yourself and type in both teams and their players.
+
+Set `LINEUP_MOCK=true` to serve deterministic lineups without any external API calls (useful for local development).
+
+---
+
+## Local development
+
+### Prerequisites
 
 - Go 1.22+
 - Flutter 3.x
 
-### Backend starten
+### Run the backend
 
 ```bash
 cd backend
 cp .env.example .env
-# Optional: API-Keys in .env eintragen (siehe unten)
+# Optional: add API keys to .env (see below)
 go run ./cmd/server
 ```
 
-Backend läuft auf `http://localhost:8080`.
+The backend runs on `http://localhost:8080`.
 
-### Frontend starten
+### Run the frontend
 
 ```bash
-# Im Browser (empfohlen)
+# In the browser (recommended)
 flutter run -d chrome
 
-# Als Desktop-App (Linux/macOS/Windows)
+# As a desktop app (Linux/macOS/Windows)
 flutter run -d linux
 ```
 
-Das Frontend verbindet sich automatisch mit `http://localhost:8080`.  
-Für andere Backends: `flutter run --dart-define=API_BASE_URL=https://deine-domain.com`
+The frontend connects to `http://localhost:8080` by default.
+For other backends: `flutter run --dart-define=API_BASE_URL=https://your-domain.com`
 
-### Projektstruktur
+> On WSL2, `flutter run -d chrome` may render a blank page (the in-WSL browser has no WebGL). Use `flutter run -d web-server --web-port=5000` and open the URL in your Windows browser instead.
+
+### Project structure
 
 ```
 ├── backend/
-│   ├── cmd/server/       # Einstiegspunkt
-│   ├── config/           # Konfiguration & Liga-Definitionen
+│   ├── cmd/server/       # Entry point
+│   ├── config/           # Configuration & league definitions
 │   ├── internal/
-│   │   ├── client/       # football-data.org HTTP-Client
-│   │   ├── handler/      # HTTP-Handler
-│   │   ├── model/        # Datenmodelle
-│   │   ├── repository/   # SQLite-Datenbankschicht
-│   │   └── service/      # Geschäftslogik + KI-Lineup-Service
+│   │   ├── client/       # football-data.org HTTP client
+│   │   ├── handler/      # HTTP handlers
+│   │   ├── model/        # Data models
+│   │   ├── repository/   # SQLite persistence
+│   │   └── service/      # Business logic + AI lineup providers
 │   └── .env.example
 ├── lib/
-│   ├── model/            # Dart-Modelle
-│   ├── provider/         # Riverpod-Provider
-│   ├── router/           # App-Navigation
+│   ├── model/            # Dart models
+│   ├── provider/         # Riverpod providers
+│   ├── router/           # App navigation
 │   ├── screen/           # Screens
-│   ├── service/          # API-Service
-│   └── widget/           # Wiederverwendbare Widgets
+│   ├── service/          # API service
+│   └── widget/           # Reusable widgets
 └── assets/
 ```
 
 ---
 
-## API-Keys
+## Configuration
 
-### football-data.org (empfohlen)
+All backend configuration is via environment variables (see [`backend/.env.example`](backend/.env.example)).
 
-Kostenlosen Key unter [football-data.org/client/register](https://www.football-data.org/client/register) registrieren.  
-Ohne Key werden einige eingebaute Testspiele angezeigt.
+### football-data.org (recommended)
+
+Register a free key at [football-data.org/client/register](https://www.football-data.org/client/register).
+Without a key, the app serves a few built-in test fixtures.
 
 ```env
-FOOTBALL_DATA_API_KEY=dein-key
+FOOTBALL_DATA_API_KEY=your-key
 ```
 
-### Anthropic API (optional)
+### Gemini (recommended — tried first)
 
-Aktiviert KI-gestützte Live-Startaufstellungen: Claude sucht ~90 Minuten vor Kickoff die offizielle Aufstellung auf Sportseiten und gibt sie strukturiert zurück. Das Ergebnis wird permanent gecacht (einmaliger Abruf pro Spiel).
+Enables AI-powered live lineups via Google Gemini's free tier with built-in Google Search grounding. Tried before Claude to save tokens. Get a key at [aistudio.google.com](https://aistudio.google.com).
 
-Ohne Key werden 11 zufällige Spieler aus dem Saisonkader gewählt.
+```env
+GEMINI_API_KEY=...
+GEMINI_MODEL=gemini-2.5-flash   # default
+```
+
+### Anthropic / Claude (optional fallback)
+
+Used only if Gemini is unconfigured or fails. Claude searches for the official lineup ~90 minutes before kickoff and returns it structured; the result is cached permanently. ~$0.001 per lineup fetch (Claude Haiku).
 
 ```env
 ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_MODEL=claude-haiku-4-5-20251001   # default
 ```
 
-Kosten: ca. $0,001 pro Lineup-Abruf (Claude Haiku).
+### Other
+
+```env
+LINEUP_MOCK=true                # serve mock lineups, no external API calls
+CORS_ALLOWED_ORIGINS=https://your-domain.com   # empty = *
+PORT=8080
+```
 
 ---
 
-## Unterstützte Ligen
+## Supported leagues
 
-| Liga | Code |
-|------|------|
+| League | Code |
+|--------|------|
 | 1. Bundesliga | BL1 |
 | 2. Bundesliga | BL2 |
 | Champions League | CL |
+| World Cup 2026 | WC |
 
-Weitere Ligen lassen sich in `backend/config/config.go` ergänzen.
+For the World Cup, full 26-man squads for all 48 teams are bundled and seeded on startup (`backend/data/wc2026_squads.json`). Add more leagues in `backend/config/config.go`.
+
+---
+
+## Game modes
+
+- **From the schedule** — pick upcoming matches from a league; lineups are resolved via the provider chain above.
+- **Manual** — create a match yourself: enter both team names and at least one player per team. No external data needed; everyone still gets one home and one away athlete assigned.
 
 ---
 
@@ -130,20 +169,26 @@ cd backend
 docker build -t goalbooze-backend .
 docker run -p 8080:8080 \
   -e FOOTBALL_DATA_API_KEY=... \
-  -e ANTHROPIC_API_KEY=... \
-  -e CORS_ALLOWED_ORIGINS=https://deine-domain.com \
+  -e GEMINI_API_KEY=... \
+  -e CORS_ALLOWED_ORIGINS=https://your-domain.com \
   -v $(pwd)/data:/data \
   goalbooze-backend
 ```
 
-Flutter-Web-Build für Produktion:
+Flutter web build for production:
 
 ```bash
-flutter build web --dart-define=API_BASE_URL=https://deine-domain.com
+flutter build web --dart-define=API_BASE_URL=https://your-domain.com
 ```
 
 ---
 
-## Geschichte
+## Background
 
-Die Idee entstand beim Gucken der Samstagskonferenz — wer bekommt welchen Spieler, und wann muss getrunken werden? Das lästige manuelle Vorbereiten (Aufstellungen suchen, Zufallszahlen generieren, mitschreiben) war der Anlass für diese App.
+The idea was born watching the Saturday Bundesliga conference — who gets which player, and when do you have to drink? The tedious manual prep (looking up lineups, generating random numbers, keeping track) was the motivation for this app.
+
+---
+
+## License
+
+[MIT](LICENSE)
