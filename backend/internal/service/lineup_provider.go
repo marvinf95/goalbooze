@@ -8,6 +8,27 @@ import (
 	"github.com/marvinf95/goalbooze/internal/model"
 )
 
+const (
+	// PlayersPerTeam is a full starting eleven; a provider lineup must have at
+	// least this many players per side to be accepted.
+	PlayersPerTeam = 11
+
+	// Synthetic athlete IDs are derived from the event ID so they stay unique
+	// across events. athleteIDStride spaces each event's IDs; awayIDOffset keeps
+	// the away team in a separate range from the home team.
+	athleteIDStride = 1000
+	awayIDOffset    = 100
+)
+
+// athleteID builds a stable synthetic ID for the index-th athlete of an event.
+func athleteID(eventID, index int, away bool) int {
+	id := eventID*athleteIDStride + index
+	if away {
+		id += awayIDOffset
+	}
+	return id
+}
+
 // LineupProvider fetches the official starting lineup for an event from some
 // external source (an AI with web search, a mock, etc.). Providers are tried in
 // order by AILineupService; the first one returning a full 11+11 lineup wins.
@@ -69,19 +90,19 @@ func parseLineupJSON(jsonStr string, event model.Event) ([]model.Athlete, []mode
 	home := make([]model.Athlete, 0, len(data.Home))
 	for i, p := range data.Home {
 		home = append(home, model.Athlete{
-			ID: event.ID*1000 + i, Name: p.Name,
+			ID: athleteID(event.ID, i, false), Name: p.Name,
 			Position: p.Position, Number: p.Number, Team: event.HomeTeam,
 		})
 	}
 	away := make([]model.Athlete, 0, len(data.Away))
 	for i, p := range data.Away {
 		away = append(away, model.Athlete{
-			ID: event.ID*1000 + 100 + i, Name: p.Name,
+			ID: athleteID(event.ID, i, true), Name: p.Name,
 			Position: p.Position, Number: p.Number, Team: event.AwayTeam,
 		})
 	}
 
-	if len(home) < 11 || len(away) < 11 {
+	if len(home) < PlayersPerTeam || len(away) < PlayersPerTeam {
 		return nil, nil, fmt.Errorf("incomplete lineup: home=%d away=%d", len(home), len(away))
 	}
 	return home, away, nil

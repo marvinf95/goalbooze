@@ -57,12 +57,12 @@ func generatePlaceholderLineup(event model.Event) ([]model.Athlete, []model.Athl
 	away := make([]model.Athlete, 0, len(mockPositions))
 	for i, pos := range mockPositions {
 		home = append(home, model.Athlete{
-			ID:       event.ID*1000 + i,
+			ID:       athleteID(event.ID, i, false),
 			Name:     fmt.Sprintf("%s Spieler %d", event.HomeTeam, i+1),
 			Position: pos, Number: i + 1, Team: event.HomeTeam,
 		})
 		away = append(away, model.Athlete{
-			ID:       event.ID*1000 + 100 + i,
+			ID:       athleteID(event.ID, i, true),
 			Name:     fmt.Sprintf("%s Spieler %d", event.AwayTeam, i+1),
 			Position: pos, Number: i + 1, Team: event.AwayTeam,
 		})

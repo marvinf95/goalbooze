@@ -5,21 +5,12 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/marvinf95/goalbooze/config"
 	"github.com/marvinf95/goalbooze/internal/client"
 	"github.com/marvinf95/goalbooze/internal/repository"
 )
-
-func currentSeason() int {
-	now := time.Now()
-	if now.Month() < 7 {
-		return now.Year() - 1
-	}
-	return now.Year()
-}
 
 type SquadHandler struct {
 	squadRepo *repository.SquadRepository
@@ -37,7 +28,7 @@ func (h *SquadHandler) GetTeams(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	season := config.SeasonForLeague(leagueID, currentSeason())
+	season := config.SeasonForLeague(leagueID, config.CurrentSeason())
 	if s := r.URL.Query().Get("season"); s != "" {
 		parsed, err := strconv.Atoi(s)
 		if err != nil || parsed < 2000 || parsed > 2100 {

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:goalbooze/model/event.dart';
 import 'package:goalbooze/model/team.dart';
 import 'package:goalbooze/service/api_service.dart';
 
@@ -26,6 +27,18 @@ typedef LineupArgs = ({
   String awayTeam,
   String date,
 });
+
+extension LineupArgsX on SportEvent {
+  /// The key used to look up this event's live lineup via [eventLineupProvider].
+  LineupArgs get lineupArgs => (
+        eventId: id,
+        homeTeamId: homeTeamId,
+        awayTeamId: awayTeamId,
+        homeTeam: homeTeam,
+        awayTeam: awayTeam,
+        date: date.toIso8601String(),
+      );
+}
 
 /// Fetches the live starting lineup for an event via Claude AI + WebSearch.
 /// Returns null on error so the caller can fall back to squad selection.

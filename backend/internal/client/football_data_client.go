@@ -34,7 +34,7 @@ func NewFootballDataClient(apiKey string) *FootballDataClient {
 }
 
 func (c *FootballDataClient) GetLeagues() ([]model.League, error) {
-	clubSeason := currentSeason()
+	clubSeason := config.CurrentSeason()
 	var leagues []model.League
 	for id, code := range leagueCodeMap {
 		leagues = append(leagues, model.League{
@@ -265,12 +265,4 @@ func leagueNameForCode(code string) string {
 	default:
 		return code
 	}
-}
-
-func currentSeason() int {
-	now := time.Now()
-	if now.Month() < 7 {
-		return now.Year() - 1
-	}
-	return now.Year()
 }

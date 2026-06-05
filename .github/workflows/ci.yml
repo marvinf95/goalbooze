@@ -22,14 +22,29 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
+      - name: Format check
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "These files are not gofmt-formatted:"
+            echo "$unformatted"
+            exit 1
+          fi
+
       - name: Build
         run: go build ./...
 
-      - name: Test
-        run: go test ./...
-
       - name: Vet
         run: go vet ./...
+
+      - name: Test
+        run: go test -coverprofile=coverage.out ./...
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.out
 
   frontend:
     name: Frontend (Flutter)
@@ -47,7 +62,13 @@ jobs:
         run: flutter pub get
 
       - name: Analyze
-        run: flutter analyze lib/
+        run: flutter analyze
 
       - name: Test
-        run: flutter test
+        run: flutter test --coverage
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: coverage/lcov.info

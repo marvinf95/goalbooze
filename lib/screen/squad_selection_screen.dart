@@ -23,15 +23,6 @@ class _SquadSelectionScreenState extends ConsumerState<SquadSelectionScreen> {
   final Map<int, bool> _overrideToManual = {};
   bool _isCreating = false;
 
-  LineupArgs _lineupArgs(SportEvent event) => (
-        eventId: event.id,
-        homeTeamId: event.homeTeamId,
-        awayTeamId: event.awayTeamId,
-        homeTeam: event.homeTeam,
-        awayTeam: event.awayTeam,
-        date: event.date.toIso8601String(),
-      );
-
   @override
   Widget build(BuildContext context) {
     final gameState = ref.watch(gameProvider);
@@ -39,7 +30,7 @@ class _SquadSelectionScreenState extends ConsumerState<SquadSelectionScreen> {
 
     // Auto-populate selections when a live lineup arrives
     for (final event in events) {
-      ref.listen(eventLineupProvider(_lineupArgs(event)), (_, next) {
+      ref.listen(eventLineupProvider(event.lineupArgs), (_, next) {
         next.whenData((data) {
           if (data == null || data['is_squad_pick'] == true) return;
           if (!_homeSelections.containsKey(event.id)) {
@@ -152,20 +143,11 @@ class _EventLineupCard extends ConsumerWidget {
     required this.onManualOverride,
   });
 
-  LineupArgs get _lineupArgs => (
-        eventId: event.id,
-        homeTeamId: event.homeTeamId,
-        awayTeamId: event.awayTeamId,
-        homeTeam: event.homeTeam,
-        awayTeam: event.awayTeam,
-        date: event.date.toIso8601String(),
-      );
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
-    final lineupAsync = ref.watch(eventLineupProvider(_lineupArgs));
+    final lineupAsync = ref.watch(eventLineupProvider(event.lineupArgs));
     final liveData = lineupAsync.valueOrNull;
     final isLive =
         !overrideToManual && liveData != null && liveData['is_squad_pick'] == false;

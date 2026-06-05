@@ -180,4 +180,46 @@ void main() {
       expect(game.assignments, isEmpty);
     });
   });
+
+  group('Athlete roundtrip', () {
+    test('toJson then fromJson preserves all fields', () {
+      const original = Athlete(
+        id: 7,
+        name: 'Kane',
+        number: 9,
+        position: 'CF',
+        team: 'Bayern',
+      );
+      final restored = Athlete.fromJson(original.toJson());
+      expect(restored.id, original.id);
+      expect(restored.name, original.name);
+      expect(restored.number, original.number);
+      expect(restored.position, original.position);
+      expect(restored.team, original.team);
+    });
+
+    test('manual athlete (only a name) survives a roundtrip', () {
+      const original =
+          Athlete(id: 0, name: 'Anna', number: 0, position: '', team: 'Rot');
+      final restored = Athlete.fromJson(original.toJson());
+      expect(restored.name, 'Anna');
+      expect(restored.team, 'Rot');
+      expect(restored.number, 0);
+    });
+  });
+
+  group('SportEvent UTC date', () {
+    test('parses a Z (UTC) date', () {
+      final event = SportEvent.fromJson({
+        'id': -1,
+        'league_id': 0,
+        'home_team': 'Rot',
+        'away_team': 'Blau',
+        'date': '2026-06-05T18:00:00.000Z',
+        'status': 'manual',
+      });
+      expect(event.date.toUtc().hour, 18);
+      expect(event.status, 'manual');
+    });
+  });
 }

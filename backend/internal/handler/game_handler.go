@@ -44,6 +44,11 @@ type createGameRequest struct {
 	Events  []createEventReq `json:"events"`
 }
 
+const (
+	maxPlayersPerGame = 10
+	maxEventsPerGame  = 10
+)
+
 func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 	var req createGameRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -55,16 +60,16 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "at least one player required", http.StatusBadRequest)
 		return
 	}
-	if len(req.Players) > 10 {
-		jsonError(w, "maximum 10 players allowed", http.StatusBadRequest)
+	if len(req.Players) > maxPlayersPerGame {
+		jsonError(w, fmt.Sprintf("maximum %d players allowed", maxPlayersPerGame), http.StatusBadRequest)
 		return
 	}
 	if len(req.Events) == 0 {
 		jsonError(w, "at least one event required", http.StatusBadRequest)
 		return
 	}
-	if len(req.Events) > 10 {
-		jsonError(w, "maximum 10 events allowed", http.StatusBadRequest)
+	if len(req.Events) > maxEventsPerGame {
+		jsonError(w, fmt.Sprintf("maximum %d events allowed", maxEventsPerGame), http.StatusBadRequest)
 		return
 	}
 
@@ -118,7 +123,7 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 			}
 			home = evReq.HomeLineup
 			away = evReq.AwayLineup
-		} else if len(evReq.HomeLineup) >= 11 && len(evReq.AwayLineup) >= 11 {
+		} else if len(evReq.HomeLineup) >= service.PlayersPerTeam && len(evReq.AwayLineup) >= service.PlayersPerTeam {
 			home = evReq.HomeLineup
 			away = evReq.AwayLineup
 		} else {

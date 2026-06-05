@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strings"
+	"time"
 )
 
 type Config struct {
@@ -38,9 +39,20 @@ const WorldCupLeagueID = 4
 // WorldCupSeason is the football-data season identifier for the World Cup.
 const WorldCupSeason = 2026
 
+// CurrentSeason returns the current club season as football-data identifies it:
+// a season started in autumn is labelled by its starting year, so before July
+// the season is the previous calendar year.
+func CurrentSeason() int {
+	now := time.Now()
+	if now.Month() < 7 {
+		return now.Year() - 1
+	}
+	return now.Year()
+}
+
 // SeasonForLeague returns the season to query for a league. Summer tournaments
 // (World Cup) use a fixed tournament year; club leagues use the supplied
-// club-season fallback (typically "current season" derived from the month).
+// club-season fallback (typically CurrentSeason()).
 func SeasonForLeague(leagueID, fallback int) int {
 	if leagueID == WorldCupLeagueID {
 		return WorldCupSeason
