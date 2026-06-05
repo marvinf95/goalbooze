@@ -28,8 +28,11 @@ class _SquadSelectionScreenState extends ConsumerState<SquadSelectionScreen> {
     final gameState = ref.watch(gameProvider);
     final events = gameState.selectedEvents;
 
-    // Auto-populate selections when a live lineup arrives
+    // Auto-populate selections when a live lineup arrives. Only request the AI
+    // lineup once kickoff is within the next hour — earlier than that no
+    // official lineup exists yet.
     for (final event in events) {
+      if (!event.isLineupWindowOpen) continue;
       ref.listen(eventLineupProvider(event.lineupArgs), (_, next) {
         next.whenData((data) {
           if (data == null || data['is_squad_pick'] == true) return;
@@ -147,10 +150,16 @@ class _EventLineupCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
-    final lineupAsync = ref.watch(eventLineupProvider(event.lineupArgs));
+    final windowOpen = event.isLineupWindowOpen;
+    // Only query the AI lineup once kickoff is within the next hour.
+    final lineupAsync = windowOpen
+        ? ref.watch(eventLineupProvider(event.lineupArgs))
+        : const AsyncValue<Map<String, dynamic>?>.data(null);
     final liveData = lineupAsync.valueOrNull;
-    final isLive =
-        !overrideToManual && liveData != null && liveData['is_squad_pick'] == false;
+    final isLive = windowOpen &&
+        !overrideToManual &&
+        liveData != null &&
+        liveData['is_squad_pick'] == false;
 
     final homeTeamsAsync = event.homeTeamId > 0 && event.leagueId > 0
         ? ref.watch(squadByTeamProvider(
@@ -231,6 +240,10 @@ class _EventLineupCard extends ConsumerWidget {
                 onManualOverride: onManualOverride,
               )
             else ...[
+              if (!windowOpen) ...[
+                _LineupNotYetAvailableNotice(date: event.date),
+                const SizedBox(height: 12),
+              ],
               _SquadSection(
                 teamName: event.homeTeam,
                 teamId: event.homeTeamId,
@@ -251,6 +264,47 @@ class _EventLineupCard extends ConsumerWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _LineupNotYetAvailableNotice extends StatelessWidget {
+  final DateTime date;
+
+  const _LineupNotYetAvailableNotice({required this.date});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final local = date.toLocal();
+    final time =
+        '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: theme.colorScheme.outline),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.schedule, size: 18, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Aufstellung noch nicht verfügbar — Anstoß um $time Uhr ist in '
+              'mehr als einer Stunde. Die offizielle Aufstellung wird in der '
+              'Regel erst etwa eine Stunde vor Spielbeginn veröffentlicht. '
+              'Du kannst den Kader bis dahin manuell wählen.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
