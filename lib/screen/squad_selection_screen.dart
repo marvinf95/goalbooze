@@ -155,7 +155,7 @@ class _EventLineupCard extends ConsumerWidget {
     final lineupAsync = windowOpen
         ? ref.watch(eventLineupProvider(event.lineupArgs))
         : const AsyncValue<Map<String, dynamic>?>.data(null);
-    final liveData = lineupAsync.valueOrNull;
+    final liveData = lineupAsync.value;
     final isLive = windowOpen &&
         !overrideToManual &&
         liveData != null &&
