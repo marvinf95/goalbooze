@@ -521,7 +521,7 @@ class _TeamCard extends StatelessWidget {
   }
 }
 
-class _EventsTab extends ConsumerWidget {
+class _EventsTab extends ConsumerStatefulWidget {
   final int selectedLeagueId;
   final void Function(int) onLeagueChanged;
 
@@ -531,10 +531,19 @@ class _EventsTab extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_EventsTab> createState() => _EventsTabState();
+}
+
+class _EventsTabState extends ConsumerState<_EventsTab> {
+  // When false, only games of the current day are shown.
+  bool _showAll = false;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final leaguesAsync = ref.watch(leaguesProvider);
-    final eventsAsync = ref.watch(eventsByLeagueProvider(selectedLeagueId));
+    final eventsAsync =
+        ref.watch(eventsByLeagueProvider(widget.selectedLeagueId));
     final gameState = ref.watch(gameProvider);
 
     return Column(
@@ -548,13 +557,13 @@ class _EventsTab extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: leagues.map((league) {
-                final isSelected = league.id == selectedLeagueId;
+                final isSelected = league.id == widget.selectedLeagueId;
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: FilterChip(
                     label: Text(league.name),
                     selected: isSelected,
-                    onSelected: (_) => onLeagueChanged(league.id),
+                    onSelected: (_) => widget.onLeagueChanged(league.id),
                   ),
                 );
               }).toList(),
@@ -590,31 +599,75 @@ class _EventsTab extends ConsumerWidget {
                   .toList()
                 ..sort((a, b) => a.date.compareTo(b.date));
 
-              if (upcoming.isEmpty) {
+              final now = DateTime.now();
+              final visible = _showAll
+                  ? upcoming
+                  : upcoming.where((e) => e.isOnSameLocalDay(now)).toList();
+
+              if (visible.isEmpty) {
                 return Center(
-                  child: Text(
-                    'Keine bevorstehenden Spiele',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _showAll
+                            ? 'Keine bevorstehenden Spiele'
+                            : 'Heute keine Spiele',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (!_showAll && upcoming.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: () => setState(() => _showAll = true),
+                          icon: const Icon(Icons.calendar_month, size: 18),
+                          label: const Text('Alle Spiele anzeigen'),
+                        ),
+                      ],
+                    ],
                   ),
                 );
               }
 
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: upcoming.length,
-                itemBuilder: (_, i) {
-                  final event = upcoming[i];
-                  final isSelected =
-                      gameState.selectedEvents.any((e) => e.id == event.id);
-                  return MatchTile(
-                    event: event,
-                    isSelected: isSelected,
-                    onTap: () =>
-                        ref.read(gameProvider.notifier).toggleEvent(event),
-                  );
-                },
+              return Column(
+                children: [
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: TextButton.icon(
+                        onPressed: () => setState(() => _showAll = !_showAll),
+                        icon: Icon(
+                          _showAll ? Icons.today : Icons.calendar_month,
+                          size: 18,
+                        ),
+                        label: Text(
+                          _showAll ? 'Nur heutige Spiele' : 'Alle Spiele anzeigen',
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                      itemCount: visible.length,
+                      itemBuilder: (_, i) {
+                        final event = visible[i];
+                        final isSelected = gameState.selectedEvents
+                            .any((e) => e.id == event.id);
+                        return MatchTile(
+                          event: event,
+                          isSelected: isSelected,
+                          onTap: () => ref
+                              .read(gameProvider.notifier)
+                              .toggleEvent(event),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               );
             },
           ),
