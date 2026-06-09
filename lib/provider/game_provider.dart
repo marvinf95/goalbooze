@@ -48,10 +48,11 @@ class GameState {
   List<int> get selectedEventIds => selectedEvents.map((e) => e.id).toList();
 }
 
-class GameNotifier extends StateNotifier<GameState> {
-  final ApiService _api;
+class GameNotifier extends Notifier<GameState> {
+  ApiService get _api => ref.read(apiServiceProvider);
 
-  GameNotifier(this._api) : super(const GameState());
+  @override
+  GameState build() => const GameState();
 
   void addPlayer(String name) {
     if (state.players.length >= 10) return;
@@ -149,7 +150,5 @@ class GameNotifier extends StateNotifier<GameState> {
   }
 }
 
-final gameProvider = StateNotifierProvider<GameNotifier, GameState>((ref) {
-  final api = ref.read(apiServiceProvider);
-  return GameNotifier(api);
-});
+final gameProvider =
+    NotifierProvider<GameNotifier, GameState>(GameNotifier.new);

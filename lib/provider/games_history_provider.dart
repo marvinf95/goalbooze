@@ -2,10 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:goalbooze/model/game.dart';
 import 'package:goalbooze/service/api_service.dart';
 
-class GamesHistoryNotifier extends StateNotifier<AsyncValue<List<Game>>> {
-  final ApiService _api;
+class GamesHistoryNotifier extends Notifier<AsyncValue<List<Game>>> {
+  ApiService get _api => ref.read(apiServiceProvider);
 
-  GamesHistoryNotifier(this._api) : super(const AsyncValue.data([]));
+  @override
+  AsyncValue<List<Game>> build() => const AsyncValue.data([]);
 
   Future<void> loadGames() async {
     state = const AsyncValue.loading();
@@ -28,7 +29,5 @@ class GamesHistoryNotifier extends StateNotifier<AsyncValue<List<Game>>> {
 }
 
 final gamesHistoryProvider =
-    StateNotifierProvider<GamesHistoryNotifier, AsyncValue<List<Game>>>((ref) {
-  final api = ref.read(apiServiceProvider);
-  return GamesHistoryNotifier(api);
-});
+    NotifierProvider<GamesHistoryNotifier, AsyncValue<List<Game>>>(
+        GamesHistoryNotifier.new);
