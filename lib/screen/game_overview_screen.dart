@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:goalbooze/model/game.dart';
 import 'package:goalbooze/provider/game_provider.dart';
 import 'package:goalbooze/service/api_service.dart';
+import 'package:goalbooze/util/share_text.dart';
 
 class GameOverviewScreen extends ConsumerWidget {
   final int gameId;
@@ -20,11 +22,18 @@ class GameOverviewScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final gameAsync = ref.watch(_gameProvider(gameId));
     final theme = Theme.of(context);
+    final game = gameAsync.value;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(readOnly ? 'Vergangenes Spiel' : 'GoalBooze'),
         actions: [
+          if (game != null && game.assignments.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.content_copy),
+              tooltip: 'Auslosung kopieren',
+              onPressed: () => _copyAssignments(context, game),
+            ),
           if (!readOnly)
             Padding(
               padding: const EdgeInsets.only(right: 12),
@@ -63,6 +72,17 @@ class GameOverviewScreen extends ConsumerWidget {
         data: (game) => _GameView(game: game, readOnly: readOnly),
       ),
     );
+  }
+
+  Future<void> _copyAssignments(BuildContext context, Game game) async {
+    await Clipboard.setData(
+      ClipboardData(text: buildAssignmentShareText(game)),
+    );
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Auslosung in die Zwischenablage kopiert')),
+      );
+    }
   }
 }
 
