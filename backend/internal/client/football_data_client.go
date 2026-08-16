@@ -12,11 +12,12 @@ import (
 
 const footballDataBaseURL = "https://api.football-data.org"
 
+// leagueCodeMap maps internal league IDs to football-data.org competition codes.
+// Only leagues sourced from football-data appear here; the DFB-Pokal and
+// 2. Bundesliga are served by OpenLigaDB instead (see config.Provider).
 var leagueCodeMap = map[int]string{
 	1: "BL1",
-	2: "BL2",
 	3: "CL",
-	4: "WC",
 }
 
 type FootballDataClient struct {
@@ -41,7 +42,7 @@ func (c *FootballDataClient) GetLeagues() ([]model.League, error) {
 			ID:     id,
 			Name:   leagueNameForCode(code),
 			Slug:   code,
-			Season: config.SeasonForLeague(id, clubSeason),
+			Season: clubSeason,
 		})
 	}
 	return leagues, nil
@@ -217,21 +218,9 @@ func devFixtures(leagueID int) []model.Event {
 			{ID: 900002, LeagueID: 1, HomeTeam: "Bayer 04 Leverkusen", HomeTeamID: 3, AwayTeam: "RB Leipzig", AwayTeamID: 721, Date: base.Add(3 * time.Hour), Status: "scheduled"},
 			{ID: 900003, LeagueID: 1, HomeTeam: "VfB Stuttgart", HomeTeamID: 10, AwayTeam: "Eintracht Frankfurt", AwayTeamID: 19, Date: base.Add(6 * time.Hour), Status: "scheduled"},
 		}
-	case 2:
-		return []model.Event{
-			{ID: 900011, LeagueID: 2, HomeTeam: "Hamburger SV", HomeTeamID: 1, AwayTeam: "1. FC Köln", AwayTeamID: 1, Date: base, Status: "scheduled"},
-		}
 	case 3:
 		return []model.Event{
 			{ID: 900021, LeagueID: 3, HomeTeam: "FC Bayern München", HomeTeamID: 5, AwayTeam: "Real Madrid CF", AwayTeamID: 86, Date: base, Status: "scheduled"},
-		}
-	case 4:
-		// World Cup 2026 fixtures. Team IDs match wc2026_squads.json so the
-		// squad-based fallback resolves correctly in mock/dev mode.
-		return []model.Event{
-			{ID: 900401, LeagueID: 4, HomeTeam: "Germany", HomeTeamID: 759, AwayTeam: "Brazil", AwayTeamID: 764, Date: base, Status: "scheduled"},
-			{ID: 900402, LeagueID: 4, HomeTeam: "France", HomeTeamID: 773, AwayTeam: "Argentina", AwayTeamID: 762, Date: base.Add(3 * time.Hour), Status: "scheduled"},
-			{ID: 900403, LeagueID: 4, HomeTeam: "Spain", HomeTeamID: 760, AwayTeam: "England", AwayTeamID: 770, Date: base.Add(6 * time.Hour), Status: "scheduled"},
 		}
 	}
 	return nil
@@ -256,12 +245,8 @@ func leagueNameForCode(code string) string {
 	switch code {
 	case "BL1":
 		return "1. Bundesliga"
-	case "BL2":
-		return "2. Bundesliga"
 	case "CL":
 		return "Champions League"
-	case "WC":
-		return "WM 2026"
 	default:
 		return code
 	}

@@ -17,27 +17,52 @@ type Config struct {
 	LineupMock         bool
 }
 
+// Data providers a league's fixtures and teams can be sourced from.
+const (
+	ProviderFootballData = "footballdata"
+	ProviderOpenLigaDB   = "openligadb"
+)
+
 type LeagueConfig struct {
-	ID               int
-	Name             string
+	ID   int
+	Name string
+	// Slug is the public code returned to the frontend (e.g. "BL1", "DFB").
+	Slug string
+	// Provider selects the upstream data source (see the Provider* constants).
+	Provider string
+	// FootballDataCode is the competition code for football-data.org
+	// (Provider == ProviderFootballData).
 	FootballDataCode string
+	// OpenLigaShortcut is the league shortcut for OpenLigaDB
+	// (Provider == ProviderOpenLigaDB), e.g. "bl2", "dfb".
+	OpenLigaShortcut string
 	Sport            string
 }
 
+// Leagues is the canonical competition list. The DFB-Pokal and 2. Bundesliga are
+// not on the free football-data tier, so they are sourced from OpenLigaDB (free,
+// no key), which also covers the fully-drawn cup rounds.
 var Leagues = []LeagueConfig{
-	{ID: 1, Name: "1. Bundesliga", FootballDataCode: "BL1", Sport: "football"},
-	{ID: 2, Name: "2. Bundesliga", FootballDataCode: "BL2", Sport: "football"},
-	{ID: 3, Name: "Champions League", FootballDataCode: "CL", Sport: "football"},
-	{ID: 4, Name: "WM 2026", FootballDataCode: "WC", Sport: "football"},
+	{ID: 1, Name: "1. Bundesliga", Slug: "BL1", Provider: ProviderFootballData, FootballDataCode: "BL1", Sport: "football"},
+	{ID: 2, Name: "2. Bundesliga", Slug: "BL2", Provider: ProviderOpenLigaDB, OpenLigaShortcut: "bl2", Sport: "football"},
+	{ID: 3, Name: "Champions League", Slug: "CL", Provider: ProviderFootballData, FootballDataCode: "CL", Sport: "football"},
+	{ID: 5, Name: "DFB Pokal", Slug: "DFB", Provider: ProviderOpenLigaDB, OpenLigaShortcut: "dfb", Sport: "football"},
 }
 
-// WorldCupLeagueID is the internal league ID for the FIFA World Cup. The cup runs
-// in summer, so its season is the tournament year rather than the club-season
-// calculation used for the leagues above.
-const WorldCupLeagueID = 4
+// DFBPokalLeagueID is the internal league ID for the DFB-Pokal (sourced from
+// OpenLigaDB). It runs across the normal club season, so no special season
+// handling is required.
+const DFBPokalLeagueID = 5
 
-// WorldCupSeason is the football-data season identifier for the World Cup.
-const WorldCupSeason = 2026
+// LeagueByID returns the configured league with the given ID, or false.
+func LeagueByID(id int) (LeagueConfig, bool) {
+	for _, lc := range Leagues {
+		if lc.ID == id {
+			return lc, true
+		}
+	}
+	return LeagueConfig{}, false
+}
 
 // CurrentSeason returns the current club season as football-data identifies it:
 // a season started in autumn is labelled by its starting year, so before July
@@ -48,16 +73,6 @@ func CurrentSeason() int {
 		return now.Year() - 1
 	}
 	return now.Year()
-}
-
-// SeasonForLeague returns the season to query for a league. Summer tournaments
-// (World Cup) use a fixed tournament year; club leagues use the supplied
-// club-season fallback (typically CurrentSeason()).
-func SeasonForLeague(leagueID, fallback int) int {
-	if leagueID == WorldCupLeagueID {
-		return WorldCupSeason
-	}
-	return fallback
 }
 
 func Load() *Config {

@@ -44,14 +44,11 @@ Athlete _athlete(String name, String team) =>
 
 void main() {
   group('seasonForLeague', () {
-    test('World Cup league uses the fixed tournament year', () {
-      expect(seasonForLeague(worldCupLeagueId), worldCupSeason);
-    });
-
-    test('club leagues use the month-based heuristic', () {
+    test('leagues use the month-based heuristic', () {
       final now = DateTime.now();
       final expected = now.month < 7 ? now.year - 1 : now.year;
       expect(seasonForLeague(1), expected);
+      expect(seasonForLeague(5), expected);
     });
   });
 

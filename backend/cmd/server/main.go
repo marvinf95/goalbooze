@@ -46,20 +46,18 @@ func main() {
 		log.Fatalf("failed to run migrations: %v", err)
 	}
 
-	apiClient := client.NewFootballDataClient(cfg.FootballDataAPIKey)
-	log.Println("Using football-data.org client")
+	// Route each league to its data source: football-data.org for the leagues on
+	// its free tier (1. Bundesliga, Champions League), OpenLigaDB for the ones it
+	// lacks (2. Bundesliga, DFB-Pokal incl. the fully-drawn cup rounds).
+	apiClient := client.NewRoutingClient(
+		client.NewFootballDataClient(cfg.FootballDataAPIKey),
+		client.NewOpenLigaDBClient(),
+	)
+	log.Println("data sources: football-data.org (BL1, CL) + OpenLigaDB (2. Bundesliga, DFB-Pokal)")
 
 	gameRepo := repository.NewGameRepository(db)
 	squadRepo := repository.NewSquadRepository(db)
 	lineupCache := repository.NewLineupCacheRepository(db)
-
-	// Seed static squads for competitions without reliable free roster data
-	// (World Cup national teams). Idempotent.
-	if n, err := squadRepo.SeedSquadsFromFile("data/wc2026_squads.json", config.WorldCupLeagueID, config.WorldCupSeason); err != nil {
-		log.Printf("WM squad seed skipped: %v", err)
-	} else {
-		log.Printf("WM squad seed: %d national teams cached", n)
-	}
 
 	// Build the lineup provider chain. Mock mode replaces all real providers so
 	// the full flow is testable without any API tokens.

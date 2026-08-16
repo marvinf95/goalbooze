@@ -5,16 +5,23 @@ import (
 	"time"
 )
 
-func TestSeasonForLeague(t *testing.T) {
-	if got := SeasonForLeague(WorldCupLeagueID, 2025); got != WorldCupSeason {
-		t.Errorf("World Cup season = %d, want %d", got, WorldCupSeason)
+func TestDFBPokalLeagueConfigured(t *testing.T) {
+	var found *LeagueConfig
+	for i := range Leagues {
+		if Leagues[i].ID == DFBPokalLeagueID {
+			found = &Leagues[i]
+			break
+		}
 	}
-	// Club leagues fall back to the supplied club season.
-	if got := SeasonForLeague(1, 2025); got != 2025 {
-		t.Errorf("club league season = %d, want 2025", got)
+	if found == nil {
+		t.Fatalf("DFB Pokal (ID %d) not present in Leagues", DFBPokalLeagueID)
 	}
-	if got := SeasonForLeague(3, 2024); got != 2024 {
-		t.Errorf("club league season = %d, want 2024", got)
+	if found.Name != "DFB Pokal" || found.Slug != "DFB" {
+		t.Errorf("DFB Pokal config = %+v, want name 'DFB Pokal' / slug 'DFB'", *found)
+	}
+	// The DFB-Pokal is sourced from OpenLigaDB, not football-data.
+	if found.Provider != ProviderOpenLigaDB || found.OpenLigaShortcut != "dfb" {
+		t.Errorf("DFB Pokal provider = %q/%q, want openligadb/dfb", found.Provider, found.OpenLigaShortcut)
 	}
 }
 
