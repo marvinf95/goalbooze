@@ -26,8 +26,8 @@ func (h *LeagueHandler) GetLeagues(w http.ResponseWriter, r *http.Request) {
 		leagues = append(leagues, map[string]interface{}{
 			"id":     lc.ID,
 			"name":   lc.Name,
-			"slug":   lc.FootballDataCode,
-			"season": config.SeasonForLeague(lc.ID, clubSeason),
+			"slug":   lc.Slug,
+			"season": clubSeason,
 			"sport":  lc.Sport,
 		})
 	}
@@ -42,7 +42,7 @@ func (h *LeagueHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	season := config.SeasonForLeague(leagueID, config.CurrentSeason())
+	season := config.CurrentSeason()
 	if s := r.URL.Query().Get("season"); s != "" {
 		parsed, err := strconv.Atoi(s)
 		if err != nil || parsed < 2000 || parsed > 2100 {

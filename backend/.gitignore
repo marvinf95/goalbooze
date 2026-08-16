@@ -1,6 +1,5 @@
 .env
 data/*
-!data/wc2026_squads.json
 # Built binary at backend/server. Anchored with `/` so it does NOT also
 # match the cmd/server/ package directory (which IS source code).
 /server

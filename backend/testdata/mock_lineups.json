@@ -1,30 +1,30 @@
 {
-  "900401": {
+  "81832": {
     "home": [
-      {"name": "Marc-André ter Stegen", "position": "GK", "number": 1},
-      {"name": "Joshua Kimmich", "position": "RB", "number": 6},
-      {"name": "Antonio Rüdiger", "position": "CB", "number": 2},
-      {"name": "Jonathan Tah", "position": "CB", "number": 4},
-      {"name": "David Raum", "position": "LB", "number": 22},
-      {"name": "Robert Andrich", "position": "DM", "number": 23},
-      {"name": "Pascal Groß", "position": "CM", "number": 13},
-      {"name": "Jamal Musiala", "position": "AM", "number": 14},
-      {"name": "Florian Wirtz", "position": "AM", "number": 10},
-      {"name": "Leroy Sané", "position": "RW", "number": 19},
-      {"name": "Kai Havertz", "position": "CF", "number": 7}
+      {"name": "Marcel Lipke", "position": "GK", "number": 1},
+      {"name": "Kevin Weggen", "position": "RB", "number": 2},
+      {"name": "Tim Kohnen", "position": "CB", "number": 4},
+      {"name": "Justin Hntges", "position": "CB", "number": 5},
+      {"name": "Luca Thomas", "position": "LB", "number": 3},
+      {"name": "Robin Afamefuna", "position": "DM", "number": 6},
+      {"name": "Nico Perrey", "position": "CM", "number": 8},
+      {"name": "Pascal Hetzel", "position": "AM", "number": 10},
+      {"name": "Jan Corsten", "position": "RW", "number": 7},
+      {"name": "Elias Wagner", "position": "LW", "number": 11},
+      {"name": "Dominik Burghard", "position": "CF", "number": 9}
     ],
     "away": [
-      {"name": "Alisson", "position": "GK", "number": 1},
-      {"name": "Danilo", "position": "RB", "number": 2},
-      {"name": "Marquinhos", "position": "CB", "number": 4},
-      {"name": "Gabriel Magalhães", "position": "CB", "number": 3},
-      {"name": "Wendell", "position": "LB", "number": 6},
-      {"name": "Bruno Guimarães", "position": "DM", "number": 5},
-      {"name": "Lucas Paquetá", "position": "CM", "number": 8},
-      {"name": "Raphinha", "position": "AM", "number": 11},
-      {"name": "Rodrygo", "position": "RW", "number": 10},
-      {"name": "Vinícius Júnior", "position": "LW", "number": 7},
-      {"name": "Endrick", "position": "CF", "number": 9}
+      {"name": "Kaua Santos", "position": "GK", "number": 31},
+      {"name": "Rasmus Kristensen", "position": "RB", "number": 22},
+      {"name": "Robin Koch", "position": "CB", "number": 25},
+      {"name": "Arthur Theate", "position": "CB", "number": 35},
+      {"name": "Nathaniel Brown", "position": "LB", "number": 3},
+      {"name": "Ellyes Skhiri", "position": "DM", "number": 17},
+      {"name": "Hugo Larsson", "position": "CM", "number": 16},
+      {"name": "Mario Götze", "position": "AM", "number": 27},
+      {"name": "Ansgar Knauff", "position": "RW", "number": 36},
+      {"name": "Can Uzun", "position": "LW", "number": 10},
+      {"name": "Jonathan Burkardt", "position": "CF", "number": 9}
     ]
   }
 }

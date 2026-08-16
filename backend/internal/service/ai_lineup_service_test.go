@@ -159,7 +159,7 @@ func TestMockProvider_GeneratesPlaceholdersWithoutFixture(t *testing.T) {
 
 func TestMockProvider_LoadsFixtureFile(t *testing.T) {
 	m := NewMockLineupProvider("../../testdata/mock_lineups.json")
-	ev := model.Event{ID: 900401, HomeTeam: "Germany", AwayTeam: "Brazil", Date: time.Now()}
+	ev := model.Event{ID: 81832, HomeTeam: "SC St. Tönis", AwayTeam: "Eintracht Frankfurt", Date: time.Now()}
 	home, away, err := m.FetchLineup(ev)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -167,7 +167,7 @@ func TestMockProvider_LoadsFixtureFile(t *testing.T) {
 	if len(home) != 11 || len(away) != 11 {
 		t.Fatalf("expected 11+11 from fixture, got %d+%d", len(home), len(away))
 	}
-	if home[0].Name != "Marc-André ter Stegen" {
+	if home[0].Name != "Marcel Lipke" {
 		t.Errorf("unexpected first home player: %q", home[0].Name)
 	}
 }

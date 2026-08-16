@@ -7,17 +7,10 @@ import 'package:goalbooze/model/athlete.dart';
 import 'package:goalbooze/model/player.dart';
 import 'package:goalbooze/model/team.dart';
 
-/// Internal league ID for the FIFA World Cup (matches backend config).
-const int worldCupLeagueId = 4;
-
-/// The World Cup runs in summer, so its season is the tournament year rather
-/// than the club-season heuristic used for domestic leagues.
-const int worldCupSeason = 2026;
-
-/// Returns the football-data season to query for a league. Summer tournaments
-/// use a fixed tournament year; club leagues use the month-based heuristic.
+/// Returns the football-data season to query for a league. A club season that
+/// starts in autumn is labelled by its starting year, so before July the season
+/// is the previous calendar year.
 int seasonForLeague(int leagueId) {
-  if (leagueId == worldCupLeagueId) return worldCupSeason;
   final now = DateTime.now();
   return now.month < 7 ? now.year - 1 : now.year;
 }
