@@ -33,8 +33,8 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   cupertino_icons: ^1.0.9
-  flutter_riverpod: ^3.4.2
-  dio: ^5.11.0
+  flutter_riverpod: ^3.4.3
+  dio: ^5.11.1
   go_router: ^17.5.0
   flutter_animate: ^4.5.0
   shimmer: ^3.0.0
@@ -50,7 +50,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
-  intl_utils: ^2.8.15
+  intl_utils: ^2.8.16
 
 flutter_icons:
   android: true
