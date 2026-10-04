@@ -40,6 +40,14 @@ jobs:
       - name: Test
         run: go test -coverprofile=coverage.out ./...
 
+      # Builds the deploy image the Pi builds. Without this, a Dependabot bump
+      # that raises the `go` directive in go.mod leaves the Dockerfile's pinned
+      # builder image behind and only breaks at deploy time (the Go steps above
+      # resolve their toolchain from go-version-file, so they stay green).
+      # amd64 here vs arm64 on the Pi is fine: toolchain drift is arch-independent.
+      - name: Docker image build (catches Dockerfile/go.mod drift)
+        run: docker build -t goalbooze-backend:ci .
+
       - name: Upload coverage
         uses: actions/upload-artifact@v7
         with:
