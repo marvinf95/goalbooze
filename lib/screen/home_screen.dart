@@ -84,7 +84,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               // Last game
               gamesAsync.when(
                 loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
+                error: (_, _) => const SizedBox.shrink(),
                 data: (games) {
                   if (games.isEmpty) return const SizedBox.shrink();
                   final last = games.first;
