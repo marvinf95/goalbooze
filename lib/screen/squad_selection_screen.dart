@@ -519,7 +519,7 @@ class _SquadSection extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
           ),
-          error: (_, __) => _RandomSelectionFallback(
+          error: (_, _) => _RandomSelectionFallback(
             teamName: teamName,
             selected: selected,
             onChanged: onChanged,

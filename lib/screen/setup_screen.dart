@@ -287,7 +287,7 @@ class _PlayersTab extends StatelessWidget {
                   )
                 : ListView.separated(
                     itemCount: players.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (_, i) {
                       final player = players[i];
                       return Container(
@@ -551,7 +551,7 @@ class _EventsTabState extends ConsumerState<_EventsTab> {
         // League selector
         leaguesAsync.when(
           loading: () => const LinearProgressIndicator(),
-          error: (_, __) => const SizedBox.shrink(),
+          error: (_, _) => const SizedBox.shrink(),
           data: (leagues) => SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),

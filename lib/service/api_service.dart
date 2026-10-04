@@ -72,7 +72,7 @@ class ApiService {
       'away_team_id': awayTeamId,
       'home_team': homeTeam,
       'away_team': awayTeam,
-      if (date != null) 'date': date,
+      'date': ?date,
     };
     final response =
         await _dio.get('/api/v1/events/$eventId/lineup', queryParameters: params);
